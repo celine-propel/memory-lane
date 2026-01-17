@@ -13,5 +13,6 @@ CREATE TABLE IF NOT EXISTS score (
   domain TEXT NOT NULL,
   value REAL NOT NULL,
   created_at TEXT NOT NULL,
+  details TEXT,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );

@@ -95,8 +95,6 @@ def tests():
             "domain": "Orientation", "minutes": 1},
         {"id": "tapping", "name": "Finger Tapping",
             "domain": "Attention", "minutes": 1},
-        {"id": "visual_puzzle", "name": "Visual Puzzle",
-            "domain": "Visualization", "minutes": 2},
     ]
     return render_template("tests.html", games=games, user=current_user(), subtitle="Assessment tests")
 
@@ -143,6 +141,12 @@ def visual_puzzle():
     return render_template("game_visual_puzzle.html", user=current_user(), subtitle="Visual Puzzle")
 
 
+@app.route("/practice/visual_puzzle")
+@login_required
+def practice_visual_puzzle():
+    return render_template("game_visual_puzzle.html", user=current_user(), subtitle="Visual Puzzle Practice")
+
+
 @app.route("/practice")
 @login_required
 def practice():
@@ -157,6 +161,8 @@ def practice():
     games = [
         {"id": "typing", "name": "Typing Speed",
             "domain": "Attention", "minutes": 2},
+        {"id": "visual_puzzle", "name": "Visual Puzzle",
+            "domain": "Visualization", "minutes": 2},
     ]
     return render_template("practice.html", plan=plan, games=games, user=current_user(), subtitle="Personalized training")
 
@@ -186,10 +192,13 @@ def dashboard():
 @app.post("/api/score")
 @login_required
 def api_score():
+    import json
     user = current_user()
     payload = request.get_json(force=True)
+    details = json.dumps(payload.get("details", {})
+                         ) if payload.get("details") else None
     add_score(user["id"], payload.get("game"), payload.get(
-        "domain"), payload.get("value"), datetime.utcnow().isoformat())
+        "domain"), payload.get("value"), datetime.utcnow().isoformat(), details)
     return jsonify({"ok": True})
 
 
