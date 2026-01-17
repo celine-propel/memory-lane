@@ -51,20 +51,15 @@ def register():
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-
         if not name or not email or not password:
             return render_template("register.html", error="Please fill out all fields.")
-
         if get_user_by_email(email):
-            return render_template("register.html", error="That email is already registered.")
-
+            return render_template("register.html", error="Email already registered.")
         pw_hash = generate_password_hash(password)
         create_user(name, email, pw_hash, datetime.utcnow().isoformat())
-
         user = get_user_by_email(email)
         session["user_id"] = user["id"]
         return redirect(url_for("dashboard"))
-
     return render_template("register.html")
 
 
@@ -73,14 +68,11 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
-
         user = get_user_by_email(email)
         if not user or not check_password_hash(user["password_hash"], password):
             return render_template("login.html", error="Invalid email or password.")
-
         session["user_id"] = user["id"]
         return redirect(url_for("dashboard"))
-
     return render_template("login.html")
 
 
@@ -93,6 +85,7 @@ def logout():
 @app.route("/tests")
 @login_required
 def tests():
+    # Only one Stroop test here
     games = [
         {"id": "stroop",
             "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
@@ -119,7 +112,8 @@ def typing_test():
 @app.route("/game/stroop")
 @login_required
 def game_stroop():
-    return render_template("game_stroop.html", user=current_user(), subtitle="Color Interference")
+    return render_template("stroop.html", user=current_user(), subtitle="Color Interference")
+
 
 
 @app.route("/game/recall")
@@ -162,7 +156,6 @@ def dashboard():
         session.pop("user_id", None)
         return redirect(url_for("login"))
     scores = get_scores(user["id"], limit=30)
-
     latest_by_domain = {}
     for s in scores:
         if s["domain"] not in latest_by_domain:
@@ -182,12 +175,7 @@ def dashboard():
 def api_score():
     user = current_user()
     payload = request.get_json(force=True)
-    game = payload.get("game", "unknown")
-    domain = payload.get("domain", "unknown")
-    value = payload.get("value", 0.0)
-    created_at = datetime.utcnow().isoformat()
-
-    add_score(user["id"], game, domain, value, created_at)
+    add_score(user["id"], payload.get("game"), payload.get("domain"), payload.get("value"), datetime.utcnow().isoformat())
     return jsonify({"ok": True})
 
 
