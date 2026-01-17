@@ -1,20 +1,69 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Quick check-ins, not diagnoses.</h1>
-  <p>Play short games to estimate cognitive domains and track changes over time.</p>
+<div class="relative py-12">
 
-  <div class="card-grid">
-    <a class="card" href="/tests">
-      <h3>Assessment Tests</h3>
-      <p>Short, research-inspired games that produce signals.</p>
-    </a>
-    <a class="card" href="/practice">
-      <h3>Practice</h3>
-      <p>Personalized training plan based on your results.</p>
-    </a>
-    <a class="card" href="/dashboard">
-      <h3>Dashboard</h3>
-      <p>See scores, trends, and what to do next.</p>
-    </a>
+  <div class="mb-16">
+    <h1 class="text-5xl font-black tracking-tighter leading-[1.1] text-white">
+      Quick check-ins,<br/>
+      <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400">
+        not diagnoses.
+      </span>
+    </h1>
+    <p class="mt-6 text-indigo-100/60 text-lg font-medium max-w-md leading-relaxed">
+      Play short, research-inspired games to estimate cognitive domains and track your mental journey.
+    </p>
   </div>
+
+  <div class="grid gap-6">
+
+    <a href="/tests" class="group relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl transition-all hover:-translate-y-2 hover:bg-white/15 hover:border-indigo-500/50 hover:shadow-indigo-500/20">
+      <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all"></div>
+
+      <div class="flex items-center justify-between relative z-10">
+        <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/40 group-hover:scale-110 transition-transform">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div class="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+        </div>
+      </div>
+
+      <div class="mt-6 relative z-10">
+        <h3 class="text-2xl font-black text-white tracking-tight">Assessment Tests</h3>
+        <p class="mt-2 text-indigo-100/50 text-sm font-medium leading-snug italic">Short, research-inspired games that produce signals.</p>
+      </div>
+    </a>
+
+    <a href="/practice" class="group relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl transition-all hover:-translate-y-2 hover:bg-white/15 hover:border-emerald-500/50 hover:shadow-emerald-500/20">
+      <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all"></div>
+
+      <div class="flex items-center justify-between relative z-10">
+        <div class="w-16 h-16 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-500/40 group-hover:scale-110 transition-transform">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+      </div>
+
+      <div class="mt-6 relative z-10">
+        <h3 class="text-2xl font-black text-white tracking-tight">Daily Practice</h3>
+        <p class="mt-2 text-emerald-100/50 text-sm font-medium leading-snug italic">Personalized training plan based on your results.</p>
+      </div>
+    </a>
+
+    <a href="/dashboard" class="group relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl transition-all hover:-translate-y-2 hover:bg-white/15 hover:border-amber-500/50 hover:shadow-amber-500/20">
+      <div class="absolute -right-10 -top-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all"></div>
+
+      <div class="flex items-center justify-between relative z-10">
+        <div class="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-amber-500/40 group-hover:scale-110 transition-transform">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        </div>
+      </div>
+
+      <div class="mt-6 relative z-10">
+        <h3 class="text-2xl font-black text-white tracking-tight">Results Dashboard</h3>
+        <p class="mt-2 text-amber-100/50 text-sm font-medium leading-snug italic">See scores, trends, and what to do next.</p>
+      </div>
+    </a>
+
+  </div>
+</div>
 {% endblock %}

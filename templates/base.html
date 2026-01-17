@@ -2,76 +2,109 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
   <title>{{ title or "Cognitive Check-In" }}</title>
-
-  <!-- Optional: nicer font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="manifest" href="/static/manifest.json">
-
-  <!-- iOS "app" feel -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0f172a; /* Deep Navy base */
+    }
+    .glass-nav {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    /* Animated Gradient Background */
+    .mesh-gradient {
+      position: fixed;
+      inset: 0;
+      z-index: -10;
+      background-color: #0f172a;
+      background-image:
+        radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.33) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.28) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(20, 184, 166, 0.2) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.25) 0px, transparent 50%);
+    }
+    .active-tab-glow {
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+  </style>
 </head>
 
-<body>
-  <div class="app">
-    <header class="topbar">
-      <div class="topbar-left">
-        <div class="app-title">Cognitive Check-In</div>
-        <div class="app-subtitle">{{ subtitle or "Quick signals, tracked over time" }}</div>
-      </div>
-      {% if user %}
-        <button class="avatar" id="avatarBtn" aria-label="Profile menu" type="button">
-            <span>{{ user.name[:2]|upper }}</span>
-        </button>
+<body class="text-slate-100 mb-20 overflow-x-hidden">
+  <div class="mesh-gradient"></div>
 
-        <div class="menu" id="profileMenu" aria-hidden="true">
-            <div class="menu-card">
-            <div class="menu-title">{{ user.name }}</div>
-            <a class="menu-item" href="/dashboard">Dashboard</a>
-            <a class="menu-item danger" href="/logout">Log out</a>
-            </div>
+  <div class="min-h-screen flex flex-col">
+
+    <header class="sticky top-0 z-30 glass-nav border-b px-6 py-4 flex justify-between items-center shadow-lg">
+      <div>
+        <div class="text-lg font-black tracking-tight text-white leading-tight">
+          <a class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400" href="/">
+            Cognitive Check-In
+          </a>
         </div>
-        {% else %}
-        <a class="btn" href="/login" style="text-decoration:none;">Log in</a>
-        {% endif %}
+        <div class="text-[10px] font-bold text-indigo-300/70 uppercase tracking-[0.2em]">{{ subtitle or "Neural Monitoring" }}</div>
+      </div>
 
+      {% if user %}
+      <div class="relative">
+        <button id="avatarBtn" class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm ring-2 ring-white/20 hover:ring-indigo-400 transition-all shadow-lg active:scale-90">
+          {{ user.name[:2]|upper }}
+        </button>
+        <div id="profileMenu" class="hidden absolute right-0 mt-3 w-48 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 py-2 ring-1 ring-black/5">
+            <div class="px-4 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest border-b border-white/5 mb-1">{{ user.name }}</div>
+            <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-300 hover:bg-indigo-600 hover:text-white transition-colors">Dashboard</a>
+            <a href="/logout" class="block px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors">Log out</a>
+        </div>
+      </div>
+      {% else %}
+      <a href="/login" class="px-4 py-1.5 rounded-full bg-indigo-500 text-white text-xs font-bold hover:bg-indigo-400 transition-all shadow-md">Log in</a>
+      {% endif %}
     </header>
 
-    <main class="content">
+    <main class="flex-grow p-6 max-w-2xl mx-auto w-full">
       {% block content %}{% endblock %}
     </main>
 
-    <nav class="tabbar">
-      <a class="tab" href="/tests" data-tab="tests">
-        <div class="tab-label">Tests</div>
-      </a>
-      <a class="tab" href="/practice" data-tab="practice">
-        <div class="tab-label">Practice</div>
-      </a>
-      <a class="tab" href="/dashboard" data-tab="dashboard">
-        <div class="tab-label">Dashboard</div>
-      </a>
-    </nav>
+    <div class="fixed bottom-6 left-0 right-0 px-6 z-40">
+        <nav class="max-w-md mx-auto glass-nav border rounded-3xl px-6 py-3 flex justify-around items-center shadow-2xl ring-1 ring-white/10">
+          <a href="/tests" data-tab="tests" class="tab-link flex flex-col items-center gap-1 group">
+            <div class="p-2 rounded-xl group-[.active]:bg-indigo-500 group-[.active]:text-white text-slate-400 transition-all group-[.active]:active-tab-glow">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+            </div>
+            <span class="text-[9px] font-black uppercase tracking-widest group-[.active]:text-indigo-300 text-slate-500">Tests</span>
+          </a>
+
+          <a href="/practice" data-tab="practice" class="tab-link flex flex-col items-center gap-1 group">
+            <div class="p-2 rounded-xl group-[.active]:bg-indigo-500 group-[.active]:text-white text-slate-400 transition-all group-[.active]:active-tab-glow">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <span class="text-[9px] font-black uppercase tracking-widest group-[.active]:text-indigo-300 text-slate-500">Practice</span>
+          </a>
+
+          <a href="/dashboard" data-tab="dashboard" class="tab-link flex flex-col items-center gap-1 group">
+            <div class="p-2 rounded-xl group-[.active]:bg-indigo-500 group-[.active]:text-white text-slate-400 transition-all group-[.active]:active-tab-glow">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <span class="text-[9px] font-black uppercase tracking-widest group-[.active]:text-indigo-300 text-slate-500">Stats</span>
+          </a>
+        </nav>
+    </div>
   </div>
 
   <script>
-    // Highlight active tab based on path
     const path = window.location.pathname;
-    const map = { "/tests":"tests", "/practice":"practice", "/dashboard":"dashboard" };
-    const active = map[path] || (path.startsWith("/tests") ? "tests" : null);
-    if (active) {
-      document.querySelectorAll(".tab").forEach(t => {
-        if (t.dataset.tab === active) t.classList.add("active");
-      });
-    }
-  </script>
+    document.querySelectorAll(".tab-link").forEach(t => {
+      if (path.includes(t.dataset.tab)) t.classList.add("active");
+    });
 
-  <script src="/static/js/app.js"></script>
+    const btn = document.getElementById('avatarBtn');
+    const menu = document.getElementById('profileMenu');
+    if(btn) btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+  </script>
 </body>
 </html>

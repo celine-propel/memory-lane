@@ -1,15 +1,73 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Log in</h1>
-  <p>Access your saved results.</p>
+<div class="flex flex-col items-center justify-center py-10">
+  <div class="text-center mb-8">
+    <h1 class="text-4xl font-black text-white tracking-tight">Welcome back</h1>
+    <p class="text-indigo-200/60 mt-2 font-medium">Access your neural signals and trends.</p>
+  </div>
 
-  <div class="card" style="max-width:420px;">
-    {% if error %}<p class="note" style="color:#b91c1c;">{{ error }}</p>{% endif %}
-    <form method="post" style="display:flex; flex-direction:column; gap:10px;">
-      <label>Email<br><input name="email" type="email" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
-      <label>Password<br><input name="password" type="password" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
-      <button class="btn btn-primary" type="submit">Log in</button>
-      <a class="btn" href="/register" style="text-decoration:none; text-align:center;">Create account</a>
+  <div class="w-full max-w-md bg-white/10 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl p-10 relative overflow-hidden">
+    <div class="absolute -right-20 -bottom-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+    {% if error %}
+    <div class="mb-6 p-4 bg-rose-500/10 border-l-4 border-rose-500 text-rose-200 text-xs font-bold rounded-r-xl backdrop-blur-md">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-6 relative z-10">
+      <div>
+        <label for="email" class="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2 ml-1">Email Address</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="name@example.com"
+          required
+          class="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-inner"
+        >
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-2 ml-1">
+          <label for="password" class="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">Password</label>
+        </div>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="••••••••"
+          required
+          class="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-inner"
+        >
+      </div>
+
+      <div class="pt-4 space-y-4">
+        <button
+          type="submit"
+          class="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-900/40 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.97] transition-all tracking-wide"
+        >
+          Sign In
+        </button>
+
+        <div class="relative py-4 flex items-center justify-center">
+          <div class="absolute w-full border-t border-white/5"></div>
+          <span class="relative bg-[#0f172a] px-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">or</span>
+        </div>
+
+        <a
+          href="/register"
+          class="block w-full text-center py-4 text-sm font-bold text-indigo-300 border border-indigo-500/30 rounded-2xl hover:bg-indigo-500/10 transition-all backdrop-blur-sm"
+        >
+          Create an account
+        </a>
+      </div>
     </form>
   </div>
+
+  <p class="mt-10 text-[10px] text-slate-500 font-black uppercase tracking-widest flex items-center gap-2">
+    <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg>
+    Secure End-to-End Encryption
+  </p>
+</div>
 {% endblock %}

@@ -1,16 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Create account</h1>
-  <p>Save your scores across sessions.</p>
-
-  <div class="card" style="max-width:420px;">
-    {% if error %}<p class="note" style="color:#b91c1c;">{{ error }}</p>{% endif %}
-    <form method="post" style="display:flex; flex-direction:column; gap:10px;">
-      <label>Name<br><input name="name" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
-      <label>Email<br><input name="email" type="email" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
-      <label>Password<br><input name="password" type="password" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
-      <button class="btn btn-primary" type="submit">Create account</button>
-      <a class="btn" href="/login" style="text-decoration:none; text-align:center;">Already have an account?</a>
-    </form>
+<div class="flex flex-col items-center justify-center py-10">
+  <div class="text-center mb-8">
+    <h1 class="text-4xl font-black text-white tracking-tight">Create your profile</h1>
+    <p class="text-indigo-200/60 mt-2 font-medium">Start tracking your cognitive health today.</p>
   </div>
+
+  <div class="w-full max-w-md">
+    <div class="bg-white/10 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl p-8 relative overflow-hidden">
+      <div class="absolute -left-20 -top-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+      {% if error %}
+      <div class="mb-6 p-4 bg-rose-500/10 border-l-4 border-rose-500 text-rose-200 text-xs font-bold rounded-r-xl backdrop-blur-md">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="post" class="space-y-5 relative z-10">
+        <div>
+          <label for="name" class="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2 ml-1">Full Name</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            placeholder="Jane Doe"
+            required
+            class="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-inner"
+          >
+        </div>
+
+        <div>
+          <label for="email" class="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2 ml-1">Email Address</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="jane@example.com"
+            required
+            class="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-inner"
+          >
+        </div>
+
+        <div>
+          <label for="password" class="block text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-2 ml-1">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            required
+            class="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-inner"
+          >
+          <p class="mt-2 text-[10px] text-indigo-300/40 font-bold uppercase tracking-tighter px-1 italic">Must be at least 8 characters.</p>
+        </div>
+
+        <div class="pt-4 space-y-4">
+          <button
+            type="submit"
+            class="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-900/40 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.97] transition-all tracking-wide"
+          >
+            Create Account
+          </button>
+
+          <div class="text-center">
+            <a href="/login" class="text-sm font-bold text-indigo-300/60 hover:text-white transition-colors">
+              Already have an account? Log in
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="mt-10 grid grid-cols-1 gap-4 px-2">
+        <div class="flex items-center gap-4 group">
+            <div class="flex-shrink-0 w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div>
+              <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none">Secure Vault</p>
+              <p class="text-xs text-slate-500 font-medium mt-1">Encrypted health data storage</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 group">
+            <div class="flex-shrink-0 w-10 h-10 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/20 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            </div>
+            <div>
+              <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Insight Engine</p>
+              <p class="text-xs text-slate-500 font-medium mt-1">Personalized trend analysis</p>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
