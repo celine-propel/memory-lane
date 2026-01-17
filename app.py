@@ -97,8 +97,6 @@ def tests():
             "domain": "Attention", "minutes": 1},
         {"id": "typing", "name": "Typing Speed",
             "domain": "Attention", "minutes": 2},
-        {"id": "fluency", "name": "Verbal Fluency",
-            "domain": "Language", "minutes": 1},
         {"id": "visual_puzzle", "name": "Visual Puzzle",
             "domain": "Visualization", "minutes": 2},
     ]
@@ -115,7 +113,6 @@ def typing_test():
 @login_required
 def game_stroop():
     return render_template("stroop.html", user=current_user(), subtitle="Color Interference")
-
 
 
 @app.route("/game/recall")
@@ -135,10 +132,12 @@ def game_orientation():
 def game_tapping():
     return render_template("game_tapping.html", user=current_user(), subtitle="Finger Tapping")
 
+
 @app.route("/game/visual_puzzle")
 @login_required
 def visual_puzzle():
     return render_template("game_visual_puzzle.html", user=current_user(), subtitle="Visual Puzzle")
+
 
 @app.route("/practice")
 @login_required
@@ -181,7 +180,8 @@ def dashboard():
 def api_score():
     user = current_user()
     payload = request.get_json(force=True)
-    add_score(user["id"], payload.get("game"), payload.get("domain"), payload.get("value"), datetime.utcnow().isoformat())
+    add_score(user["id"], payload.get("game"), payload.get(
+        "domain"), payload.get("value"), datetime.utcnow().isoformat())
     return jsonify({"ok": True})
 
 
