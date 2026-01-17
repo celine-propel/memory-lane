@@ -140,6 +140,10 @@ def game_tapping():
 def visual_puzzle():
     return render_template("game_visual_puzzle.html", user=current_user(), subtitle="Visual Puzzle")
 
+@app.route("/practice/trails")
+@login_required
+def trails():
+    return render_template("game_trails.html", user=current_user(), subtitle="Trails Practice")
 
 @app.route("/practice/visual_puzzle")
 @login_required
@@ -155,6 +159,8 @@ def practice():
             "domain": "Attention", "minutes": 2},
         {"id": "visual_puzzle", "name": "Visual Puzzle",
             "domain": "Visualization", "minutes": 2},
+        {"id": "trails", "name": "Trails",
+            "domain": "Pattern Identification", "minutes": 2}
     ]
     return render_template("practice.html", games=games, user=current_user(), subtitle="Personalized training")
 

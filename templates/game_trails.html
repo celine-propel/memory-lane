@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">Trail Switch (1–A–2–B…)</h1>
+  <p class="text-indigo-200/60 mt-2 font-medium">
+    Tap the circles in order: 1 → A → 2 → B → 3 → C …
+  </p>
+</div>
+
+<div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5">
+  <div class="flex items-center justify-between">
+    <div id="trProgress" class="px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full bg-indigo-500/20 text-indigo-200">Ready</div>
+    <div id="trMeta" class="text-sm text-slate-300 font-semibold">Errors: 0</div>
+  </div>
+
+  <div class="flex justify-center gap-3">
+    <button id="trStart" type="button"
+      class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400 transition shadow-md">
+      Start
+    </button>
+    <button id="trSubmit" type="button" disabled
+      class="px-5 py-2.5 rounded-xl bg-white/10 text-white text-sm font-bold hover:bg-white/20 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+      Submit
+    </button>
+  </div>
+
+  <div id="trStatus" class="text-center text-xs text-indigo-200/70">Press start when you are ready.</div>
+
+  <div class="relative rounded-2xl bg-white/5 border border-white/10 overflow-hidden" style="height: 460px;">
+    <!-- SVG line layer -->
+    <svg id="trLines" class="absolute inset-0 w-full h-full pointer-events-none"></svg>
+    <!-- Node layer -->
+    <div id="trBoard" class="absolute inset-0"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/games/trails.js"></script>
+{% endblock %}
