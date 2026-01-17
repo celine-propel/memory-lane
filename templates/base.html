@@ -4,23 +4,60 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or "Cognitive Check-In" }}</title>
+
+  <!-- Optional: nicer font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="manifest" href="/static/manifest.json">
-</head>
-<body>
-  <header class="topbar">
-    <div class="brand">Memory Lane</div>
-    <nav class="nav">
-      <a href="/">Home</a>
-      <a href="/tests">Tests</a>
-      <a href="/practice">Practice</a>
-      <a href="/dashboard">Dashboard</a>
-    </nav>
-  </header>
 
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+  <!-- iOS "app" feel -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="app-title">Cognitive Check-In</div>
+        <div class="app-subtitle">{{ subtitle or "Quick signals, tracked over time" }}</div>
+      </div>
+      <a class="avatar" href="/dashboard" aria-label="Profile">
+        <span>DC</span>
+      </a>
+    </header>
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <nav class="tabbar">
+      <a class="tab" href="/tests" data-tab="tests">
+        <div class="tab-label">Tests</div>
+      </a>
+      <a class="tab" href="/practice" data-tab="practice">
+        <div class="tab-label">Practice</div>
+      </a>
+      <a class="tab" href="/dashboard" data-tab="dashboard">
+        <div class="tab-label">Dashboard</div>
+      </a>
+    </nav>
+  </div>
+
+  <script>
+    // Highlight active tab based on path
+    const path = window.location.pathname;
+    const map = { "/tests":"tests", "/practice":"practice", "/dashboard":"dashboard" };
+    const active = map[path] || (path.startsWith("/tests") ? "tests" : null);
+    if (active) {
+      document.querySelectorAll(".tab").forEach(t => {
+        if (t.dataset.tab === active) t.classList.add("active");
+      });
+    }
+  </script>
 
   <script src="/static/js/app.js"></script>
 </body>
