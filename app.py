@@ -98,12 +98,13 @@ def tests():
         {"id": "recall", "name": "Five-Word Recall", "domain": "Memory", "minutes": 2},
         {"id": "orientation", "name": "Orientation Quickcheck", "domain": "Orientation", "minutes": 1},
         {"id": "tapping", "name": "Finger Tapping", "domain": "Attention", "minutes": 1},
+        {"id": "typing", "name": "Typing Speed", "domain": "Attention", "minutes": 2},
         {"id": "fluency", "name": "Verbal Fluency", "domain": "Language", "minutes": 1},
     ]
     return render_template("tests.html", games=games, user=current_user(), subtitle="Assessment tests")
 
 
-@app.route("/tests/typing")
+@app.route("/game/typing")
 @login_required
 def typing_test():
     return render_template("typing_test.html", user=current_user(), subtitle="Typing Assessment")

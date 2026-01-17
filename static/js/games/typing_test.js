@@ -146,3 +146,7 @@ async function saveTypingScore(game, domain, score) {
 document.addEventListener("DOMContentLoaded", () => {
   fetchTargetText();
 });
+
+document.addEventListener("keydown", () => {
+  if (!isStarted) startTest();
+});
