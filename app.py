@@ -94,12 +94,18 @@ def logout():
 @login_required
 def tests():
     games = [
-        {"id": "stroop", "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
-        {"id": "recall", "name": "Five-Word Recall", "domain": "Memory", "minutes": 2},
-        {"id": "orientation", "name": "Orientation Quickcheck", "domain": "Orientation", "minutes": 1},
-        {"id": "tapping", "name": "Finger Tapping", "domain": "Attention", "minutes": 1},
-        {"id": "typing", "name": "Typing Speed", "domain": "Attention", "minutes": 2},
-        {"id": "fluency", "name": "Verbal Fluency", "domain": "Language", "minutes": 1},
+        {"id": "stroop",
+            "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
+        {"id": "recall", "name": "Five-Word Recall",
+            "domain": "Memory", "minutes": 2},
+        {"id": "orientation", "name": "Orientation Quickcheck",
+            "domain": "Orientation", "minutes": 1},
+        {"id": "tapping", "name": "Finger Tapping",
+            "domain": "Attention", "minutes": 1},
+        {"id": "typing", "name": "Typing Speed",
+            "domain": "Attention", "minutes": 2},
+        {"id": "fluency", "name": "Verbal Fluency",
+            "domain": "Language", "minutes": 1},
     ]
     return render_template("tests.html", games=games, user=current_user(), subtitle="Assessment tests")
 
@@ -115,20 +121,24 @@ def typing_test():
 def game_stroop():
     return render_template("game_stroop.html", user=current_user(), subtitle="Color Interference")
 
+
 @app.route("/game/recall")
 @login_required
 def game_recall():
     return render_template("game_recall.html", user=current_user(), subtitle="Five-Word Recall")
+
 
 @app.route("/game/orientation")
 @login_required
 def game_orientation():
     return render_template("game_orientation.html", user=current_user(), subtitle="Orientation Quickcheck")
 
+
 @app.route("/game/tapping")
 @login_required
 def game_tapping():
     return render_template("game_tapping.html", user=current_user(), subtitle="Finger Tapping")
+
 
 @app.route("/practice")
 @login_required
@@ -218,6 +228,53 @@ def get_typing_text():
         return jsonify({
             "text": text,
             "length": len(text)
+        })
+
+
+@app.get("/api/recall-words")
+@login_required
+def get_recall_words():
+    """Generate 5 random words for recall game."""
+    try:
+        # Use Ollama to generate words via local LLM
+        response = ollama.generate(
+            model="mistral",
+            prompt="Generate exactly 5 random common English words separated by commas. Just the words, nothing else. Example format: cat, book, tree, water, light",
+            stream=False
+        )
+
+        words_str = response['response'].strip()
+        words = [w.strip().lower() for w in words_str.split(',')][:5]
+
+        # Fallback if we don't get exactly 5 words
+        if len(words) < 5:
+            import random
+            fallback_words = [
+                ["elephant", "crystal", "mountain", "piano", "harbor"],
+                ["garden", "thunder", "silver", "whisper", "anchor"],
+                ["canvas", "forest", "marble", "silence", "beacon"],
+                ["island", "symphony", "pearl", "venture", "wisdom"],
+                ["bridge", "twilight", "emerald", "rhythm", "horizon"],
+            ]
+            words = random.choice(fallback_words)
+
+        return jsonify({
+            "words": words[:5]
+        })
+    except Exception as e:
+        print(f"LLM Error: {e}")
+        # Fallback words if LLM is unavailable
+        import random
+        fallback_words = [
+            ["elephant", "crystal", "mountain", "piano", "harbor"],
+            ["garden", "thunder", "silver", "whisper", "anchor"],
+            ["canvas", "forest", "marble", "silence", "beacon"],
+            ["island", "symphony", "pearl", "venture", "wisdom"],
+            ["bridge", "twilight", "emerald", "rhythm", "horizon"],
+        ]
+        words = random.choice(fallback_words)
+        return jsonify({
+            "words": words
         })
 
 

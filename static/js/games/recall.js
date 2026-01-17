@@ -1,5 +1,5 @@
 (() => {
-  const WORDS = ["face", "velvet", "church", "daisy", "red"];
+  let WORDS = [];
   const STUDY_SECONDS = 20;
   const DELAY_SECONDS = 15;
 
@@ -20,6 +20,33 @@
   let studyCountdown = null;
   let delayCountdown = null;
   let recallStart = 0;
+
+  // Fetch random words on page load
+  fetch("/api/recall-words")
+    .then((res) => res.json())
+    .then((data) => {
+      WORDS = data.words;
+      renderWords();
+    })
+    .catch((err) => {
+      console.error("Failed to load words:", err);
+      // Fallback words
+      WORDS = ["face", "velvet", "church", "daisy", "red"];
+      renderWords();
+    });
+
+  function renderWords() {
+    if (wordsEl) {
+      wordsEl.innerHTML = "";
+      WORDS.forEach((word) => {
+        const wordDiv = document.createElement("div");
+        wordDiv.className =
+          "text-center font-black tracking-[0.2em] py-3 rounded-2xl bg-white/5 text-white";
+        wordDiv.textContent = word.toUpperCase();
+        wordsEl.appendChild(wordDiv);
+      });
+    }
+  }
 
   function setStage(label) {
     stageEl.textContent = label;
@@ -87,7 +114,7 @@
     const tokens = raw.split(/[^a-z]+/).filter(Boolean);
     const unique = new Set(tokens);
     let correct = 0;
-    WORDS.forEach(word => {
+    WORDS.forEach((word) => {
       if (unique.has(word)) correct += 1;
     });
     return correct;
@@ -111,17 +138,19 @@
         game: "recall",
         domain: "Memory",
         value: score,
-        recall_ms: elapsed
+        recall_ms: elapsed,
+      }),
+    })
+      .then(() => {
+        statusEl.textContent = "Saved. Redirecting to dashboard...";
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 800);
       })
-    }).then(() => {
-      statusEl.textContent = "Saved. Redirecting to dashboard...";
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 800);
-    }).catch(() => {
-      statusEl.textContent = "Could not save score. Please try again.";
-      submitBtn.disabled = false;
-    });
+      .catch(() => {
+        statusEl.textContent = "Could not save score. Please try again.";
+        submitBtn.disabled = false;
+      });
   }
 
   startBtn.addEventListener("click", () => {
