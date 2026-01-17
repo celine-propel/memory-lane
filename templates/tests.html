@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Assessment Tests</h1>
+  <p>Choose a short test. Results go to your dashboard.</p>
+
+  <div class="list">
+    {% for g in games %}
+      <div class="list-item">
+        <div>
+          <div class="item-title">{{ g.name }}</div>
+          <div class="item-meta">{{ g.domain }} • ~{{ g.minutes }} min</div>
+        </div>
+        <button class="btn" onclick="demoSaveScore('{{g.id}}','{{g.domain}}')">Run Demo</button>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="note">“Run Demo” saves a fake score for now. Later you’ll replace it with real game logic.</p>
+{% endblock %}

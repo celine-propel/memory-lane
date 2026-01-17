@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Dashboard</h1>
+
+  <h2>Latest by domain</h2>
+  <div class="card-grid">
+    {% for domain, s in latest_by_domain.items() %}
+      <div class="card">
+        <h3>{{ domain }}</h3>
+        <p class="big">{{ "%.2f"|format(s.value) }}</p>
+        <p class="muted">{{ s.game }} • {{ s.created_at }}</p>
+      </div>
+    {% endfor %}
+    {% if latest_by_domain|length == 0 %}
+      <p class="note">No scores yet. Go to Tests and run a demo.</p>
+    {% endif %}
+  </div>
+
+  <h2>Recent activity</h2>
+  <div class="list">
+    {% for s in scores %}
+      <div class="list-item">
+        <div>
+          <div class="item-title">{{ s.game }} — {{ s.domain }}</div>
+          <div class="item-meta">{{ s.created_at }}</div>
+        </div>
+        <div class="pill">{{ "%.2f"|format(s.value) }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="note">Not a diagnosis. This is a trend/signal tracker.</p>
+{% endblock %}

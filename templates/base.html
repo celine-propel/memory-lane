@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or "Cognitive Check-In" }}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Memory Lane</div>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/tests">Tests</a>
+      <a href="/practice">Practice</a>
+      <a href="/dashboard">Dashboard</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

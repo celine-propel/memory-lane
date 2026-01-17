@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Practice Plan</h1>
+  <p>This is a simple demo plan. Later, generate it from domain results.</p>
+
+  <div class="list">
+    {% for p in plan %}
+      <div class="list-item">
+        <div>
+          <div class="item-title">{{ p.name }}</div>
+          <div class="item-meta">{{ p.days }}</div>
+          <div class="item-desc">{{ p.desc }}</div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
