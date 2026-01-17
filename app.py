@@ -114,7 +114,7 @@ def practice_typing():
 @app.route("/game/stroop")
 @login_required
 def game_stroop():
-    return render_template("stroop.html", user=current_user(), subtitle="Color Interference")
+    return render_template("game_stroop.html", user=current_user(), subtitle="Color Interference")
 
 
 @app.route("/game/recall")
@@ -151,10 +151,18 @@ def practice_visual_puzzle():
     return render_template("game_visual_puzzle.html", user=current_user(), subtitle="Visual Puzzle Practice")
 
 
+@app.route("/practice/stroop")
+@login_required
+def practice_stroop():
+    return render_template("stroop.html", user=current_user(), subtitle="Stroop Practice")
+
+
 @app.route("/practice")
 @login_required
 def practice():
     games = [
+        {"id": "stroop", "name": "Stroop Practice",
+            "domain": "Executive Function", "minutes": 2},
         {"id": "typing", "name": "Typing Speed",
             "domain": "Attention", "minutes": 2},
         {"id": "visual_puzzle", "name": "Visual Puzzle",
