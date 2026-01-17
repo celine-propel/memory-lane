@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Create account</h1>
+  <p>Save your scores across sessions.</p>
+
+  <div class="card" style="max-width:420px;">
+    {% if error %}<p class="note" style="color:#b91c1c;">{{ error }}</p>{% endif %}
+    <form method="post" style="display:flex; flex-direction:column; gap:10px;">
+      <label>Name<br><input name="name" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
+      <label>Email<br><input name="email" type="email" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
+      <label>Password<br><input name="password" type="password" required style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border);"></label>
+      <button class="btn btn-primary" type="submit">Create account</button>
+      <a class="btn" href="/login" style="text-decoration:none; text-align:center;">Already have an account?</a>
+    </form>
+  </div>
+{% endblock %}

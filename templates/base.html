@@ -25,9 +25,22 @@
         <div class="app-title">Cognitive Check-In</div>
         <div class="app-subtitle">{{ subtitle or "Quick signals, tracked over time" }}</div>
       </div>
-      <a class="avatar" href="/dashboard" aria-label="Profile">
-        <span>DC</span>
-      </a>
+      {% if user %}
+        <button class="avatar" id="avatarBtn" aria-label="Profile menu" type="button">
+            <span>{{ user.name[:2]|upper }}</span>
+        </button>
+
+        <div class="menu" id="profileMenu" aria-hidden="true">
+            <div class="menu-card">
+            <div class="menu-title">{{ user.name }}</div>
+            <a class="menu-item" href="/dashboard">Dashboard</a>
+            <a class="menu-item danger" href="/logout">Log out</a>
+            </div>
+        </div>
+        {% else %}
+        <a class="btn" href="/login" style="text-decoration:none;">Log in</a>
+        {% endif %}
+
     </header>
 
     <main class="content">

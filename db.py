@@ -12,18 +12,32 @@ def get_conn():
 def init_db():
     conn = get_conn()
     conn.executescript(SCHEMA_PATH.read_text())
-    # create a default user for demo
-    cur = conn.execute("SELECT id FROM user LIMIT 1")
-    if cur.fetchone() is None:
-        conn.execute("INSERT INTO user (name) VALUES (?)", ("Demo User",))
     conn.commit()
     conn.close()
 
-def get_demo_user_id():
+def create_user(name, email, password_hash, created_at):
     conn = get_conn()
-    row = conn.execute("SELECT id FROM user LIMIT 1").fetchone()
+    conn.execute(
+        "INSERT INTO user (name, email, password_hash, created_at) VALUES (?,?,?,?)",
+        (name, email.lower().strip(), password_hash, created_at)
+    )
+    conn.commit()
     conn.close()
-    return row["id"]
+
+def get_user_by_email(email):
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT * FROM user WHERE email=?",
+        (email.lower().strip(),)
+    ).fetchone()
+    conn.close()
+    return row
+
+def get_user_by_id(user_id):
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM user WHERE id=?", (user_id,)).fetchone()
+    conn.close()
+    return row
 
 def add_score(user_id, game, domain, value, created_at):
     conn = get_conn()

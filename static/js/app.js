@@ -12,3 +12,34 @@ async function demoSaveScore(game, domain) {
     window.location.href = "/dashboard";
   }
   
+  (function () {
+    const btn = document.getElementById("avatarBtn");
+    const menu = document.getElementById("profileMenu");
+    if (!btn || !menu) return;
+  
+    function openMenu() {
+      menu.classList.add("show");
+      menu.setAttribute("aria-hidden", "false");
+    }
+    function closeMenu() {
+      menu.classList.remove("show");
+      menu.setAttribute("aria-hidden", "true");
+    }
+  
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (menu.classList.contains("show")) closeMenu();
+      else openMenu();
+    });
+  
+    // click outside closes
+    menu.addEventListener("click", (e) => {
+      if (e.target === menu) closeMenu();
+    });
+  
+    // escape closes (desktop)
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeMenu();
+    });
+  })();
+  

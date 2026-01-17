@@ -216,3 +216,56 @@
     color: #2563eb;
   }
   
+  /* Profile popup menu */
+.menu{
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.18);
+  }
+  
+  .menu.show{ display: block; }
+  
+  .menu-card{
+    position: absolute;
+    top: 66px;
+    right: 16px;
+    width: 210px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 10px;
+  }
+  
+  .menu-title{
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--text);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  
+  .menu-item{
+    display: block;
+    padding: 10px 10px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  
+  .menu-item:hover{
+    background: rgba(15, 23, 42, 0.04);
+  }
+  
+  .menu-item.danger{
+    color: #b91c1c;
+  }
+  .menu-item.danger:hover{
+    background: rgba(185, 28, 28, 0.08);
+  }
+  
