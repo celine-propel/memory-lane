@@ -180,6 +180,7 @@ def dashboard():
     if not user:
         session.pop("user_id", None)
         return redirect(url_for("login"))
+    profile_incomplete = not (user['age'] and user['ethnicity'] and user['gender'])
     scores = get_scores(user["id"], limit=30)
     latest_by_domain = {}
     for s in scores:

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="py-10">
+  <div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-white tracking-tight">User Profile</h1>
+    <p class="text-indigo-200/60 text-sm mt-1 border-l-2 border-indigo-500 pl-3">Complete your details to improve diagnostic accuracy.</p>
+  </div>
+
+  <div class="bg-white/10 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl p-8">
+    <form action="/profile" method="POST" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div>
+          <label class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 ml-1">Full Name</label>
+          <input type="text" name="name" value="{{ user.name }}" class="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-indigo-500 outline-none transition-all">
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 ml-1">Age</label>
+          <input type="number" name="age" value="{{ user.age or '' }}" placeholder="Enter age" class="w-full px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-indigo-500 outline-none transition-all">
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 ml-1">Gender</label>
+          <select name="gender" class="w-full px-5 py-3.5 rounded-2xl bg-slate-900 border border-white/10 text-white focus:border-indigo-500 outline-none transition-all">
+            <option value="" {% if not user.gender %}selected{% endif %}>Select Gender</option>
+            <option value="male" {% if user.gender == 'male' %}selected{% endif %}>Male</option>
+            <option value="female" {% if user.gender == 'female' %}selected{% endif %}>Female</option>
+            <option value="other" {% if user.gender == 'other' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 ml-1">Race</label>
+            {% set current_race = user.ethnicity.split('_')[0] if user.ethnicity and '_' in user.ethnicity else 'NA' %}
+            <select name="race" class="w-full px-5 py-3.5 rounded-2xl bg-slate-900 border border-white/10 text-white focus:border-indigo-500 outline-none transition-all">
+              <option value="W" {% if current_race == 'W' %}selected{% endif %}>White</option>
+              <option value="AA" {% if current_race == 'AA' %}selected{% endif %}>African American / Black</option>
+              <option value="AS" {% if current_race == 'AS' %}selected{% endif %}>Asian</option>
+              <option value="AI" {% if current_race == 'AI' %}selected{% endif %}>American Indian / Alaska Native</option>
+              <option value="NH" {% if current_race == 'NH' %}selected{% endif %}>Native Hawaiian / Pacific Islander</option>
+              <option value="O" {% if current_race == 'O' %}selected{% endif %}>Other</option>
+              <option value="NA" {% if current_race == 'NA' %}selected{% endif %}>Unknown</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2 ml-1">Hispanic/Latino Status</label>
+            {% set current_eth = user.ethnicity.split('_')[1] if user.ethnicity and '_' in user.ethnicity else 'NA' %}
+            <select name="hispanic_status" class="w-full px-5 py-3.5 rounded-2xl bg-slate-900 border border-white/10 text-white focus:border-indigo-500 outline-none transition-all">
+              <option value="0" {% if current_eth == '0' %}selected{% endif %}>Not Hispanic or Latino</option>
+              <option value="1" {% if current_eth == '1' %}selected{% endif %}>Hispanic or Latino</option>
+              <option value="NA" {% if current_eth == 'NA' %}selected{% endif %}>Unknown</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-6">
+        <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black rounded-2xl shadow-xl hover:from-indigo-500 transition-all active:scale-[0.98]">
+          Update Profile Information
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
