@@ -95,8 +95,6 @@ def tests():
             "domain": "Orientation", "minutes": 1},
         {"id": "tapping", "name": "Finger Tapping",
             "domain": "Attention", "minutes": 1},
-        {"id": "typing", "name": "Typing Speed",
-            "domain": "Attention", "minutes": 2},
         {"id": "visual_puzzle", "name": "Visual Puzzle",
             "domain": "Visualization", "minutes": 2},
     ]
@@ -107,6 +105,12 @@ def tests():
 @login_required
 def typing_test():
     return render_template("typing_test.html", user=current_user(), subtitle="Typing Assessment")
+
+
+@app.route("/practice/typing")
+@login_required
+def practice_typing():
+    return render_template("typing_test.html", user=current_user(), subtitle="Typing Speed Practice")
 
 
 @app.route("/game/stroop")
@@ -150,7 +154,11 @@ def practice():
         {"name": "Focus Reset",
             "desc": "1-minute attention reset before tests.", "days": "Daily"},
     ]
-    return render_template("practice.html", plan=plan, user=current_user(), subtitle="Personalized training")
+    games = [
+        {"id": "typing", "name": "Typing Speed",
+            "domain": "Attention", "minutes": 2},
+    ]
+    return render_template("practice.html", plan=plan, games=games, user=current_user(), subtitle="Personalized training")
 
 
 @app.route("/dashboard")

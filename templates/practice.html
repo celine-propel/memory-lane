@@ -45,6 +45,44 @@
     {% endif %}
   </div>
 
+  <!-- Practice Games Section -->
+  {% if games %}
+  <div class="mt-12 mb-8">
+    <h2 class="text-3xl font-black text-white tracking-tight leading-tight mb-6">Practice Games</h2>
+    <div class="grid gap-6">
+      {% for game in games %}
+        <a href="/practice/{{ game.id }}" class="relative group bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl transition-all hover:-translate-y-1 hover:border-blue-500/30 overflow-hidden no-underline">
+          <div class="absolute top-8 right-8 px-3 py-1 bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+            {{ game.minutes }} min
+          </div>
+
+          <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-all"></div>
+
+          <div class="flex items-start gap-6 relative z-10">
+            <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-900/40 group-hover:rotate-3 transition-transform">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+
+            <div class="pr-12 flex-1">
+              <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-blue-300 transition-colors">{{ game.name }}</h3>
+              <p class="mt-2 text-slate-400 text-sm font-medium">{{ game.domain }}</p>
+
+              <div class="mt-6">
+                  <div class="inline-flex items-center gap-2 text-sm font-black text-blue-400 group-hover:text-blue-300 transition-all">
+                      <span>Start Practice</span>
+                      <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="mt-12 group relative overflow-hidden p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-violet-700 shadow-2xl shadow-indigo-950/50 transition-all hover:scale-[1.01]">
     <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl animate-pulse"></div>
 
