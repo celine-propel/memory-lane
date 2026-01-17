@@ -94,14 +94,11 @@ def logout():
 @login_required
 def tests():
     games = [
-        {"id": "stroop",
-            "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
-        {"id": "typing-velocity", "name": "Focus Probe: Velocity",
-            "domain": "Psychomotor", "minutes": 1},  # Added
-        {"id": "tapping", "name": "Finger Tapping",
-            "domain": "Motor Timing", "minutes": 1},
-        {"id": "fluency", "name": "Verbal Fluency",
-            "domain": "Language", "minutes": 1},
+        {"id": "stroop", "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
+        {"id": "recall", "name": "Five-Word Recall", "domain": "Memory", "minutes": 2},
+        {"id": "orientation", "name": "Orientation Quickcheck", "domain": "Orientation", "minutes": 1},
+        {"id": "tapping", "name": "Finger Tapping", "domain": "Attention", "minutes": 1},
+        {"id": "fluency", "name": "Verbal Fluency", "domain": "Language", "minutes": 1},
     ]
     return render_template("tests.html", games=games, user=current_user(), subtitle="Assessment tests")
 
@@ -111,6 +108,26 @@ def tests():
 def typing_test():
     return render_template("typing_test.html", user=current_user(), subtitle="Typing Assessment")
 
+
+@app.route("/game/stroop")
+@login_required
+def game_stroop():
+    return render_template("game_stroop.html", user=current_user(), subtitle="Color Interference")
+
+@app.route("/game/recall")
+@login_required
+def game_recall():
+    return render_template("game_recall.html", user=current_user(), subtitle="Five-Word Recall")
+
+@app.route("/game/orientation")
+@login_required
+def game_orientation():
+    return render_template("game_orientation.html", user=current_user(), subtitle="Orientation Quickcheck")
+
+@app.route("/game/tapping")
+@login_required
+def game_tapping():
+    return render_template("game_tapping.html", user=current_user(), subtitle="Finger Tapping")
 
 @app.route("/practice")
 @login_required
@@ -130,6 +147,9 @@ def practice():
 @login_required
 def dashboard():
     user = current_user()
+    if not user:
+        session.pop("user_id", None)
+        return redirect(url_for("login"))
     scores = get_scores(user["id"], limit=30)
 
     latest_by_domain = {}

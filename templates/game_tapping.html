@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">Finger Tapping</h1>
+  <p class="text-indigo-200/60 mt-2 font-medium">Tap the target as fast as you can for 15 seconds.</p>
+</div>
+
+<div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5">
+  <div class="flex items-center justify-between">
+    <div id="tappingStage" class="px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full bg-indigo-500/20 text-indigo-200">Ready</div>
+    <div id="tappingMeta" class="text-sm text-slate-300 font-semibold">Taps: 0</div>
+  </div>
+
+  <div id="tappingTimer" class="text-center text-xs text-indigo-200/70">Press start when ready.</div>
+
+  <div id="tappingArea" class="flex items-center justify-center rounded-3xl bg-white/5 p-6" aria-disabled="true">
+    <button id="tappingTarget" type="button" class="w-36 h-36 rounded-full border-2 border-white/20 bg-white/10 text-white text-lg font-black shadow-xl hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed">Tap</button>
+  </div>
+
+  <div class="flex justify-center">
+    <button id="tappingStart" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400 transition shadow-md">Start</button>
+  </div>
+
+  <div id="tappingStatus" class="text-center text-xs text-indigo-200/70">Stay focused and tap quickly.</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/games/tapping.js"></script>
+{% endblock %}

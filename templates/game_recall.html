@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">Five-Word Recall</h1>
+  <p class="text-indigo-200/60 mt-2 font-medium">Study the five words, wait briefly, then recall as many as you can.</p>
+</div>
+
+<div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5">
+  <div class="flex items-center justify-between">
+    <div id="recallStage" class="px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full bg-emerald-500/20 text-emerald-200">Ready</div>
+    <div id="recallMeta" class="text-sm text-slate-300 font-semibold">Score: -</div>
+  </div>
+
+  <div id="recallWords" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+    <div class="text-center font-black tracking-[0.2em] py-3 rounded-2xl bg-white/5">FACE</div>
+    <div class="text-center font-black tracking-[0.2em] py-3 rounded-2xl bg-white/5">VELVET</div>
+    <div class="text-center font-black tracking-[0.2em] py-3 rounded-2xl bg-white/5">CHURCH</div>
+    <div class="text-center font-black tracking-[0.2em] py-3 rounded-2xl bg-white/5">DAISY</div>
+    <div class="text-center font-black tracking-[0.2em] py-3 rounded-2xl bg-white/5">RED</div>
+  </div>
+
+  <div id="recallTimer" class="text-center text-xs text-indigo-200/70">Press start to begin.</div>
+
+  <div id="recallActions" class="flex justify-center">
+    <button id="recallStart" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400 transition shadow-md">Start</button>
+  </div>
+
+  <div id="recallInput" class="space-y-3" aria-hidden="true">
+    <label for="recallAnswer" class="text-xs text-slate-300 font-semibold uppercase tracking-widest">Type the words you remember (separate by commas)</label>
+    <input id="recallAnswer" class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-400" type="text" placeholder="e.g., face, red, church">
+    <button id="recallSubmit" type="button" class="px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-400 transition shadow-md">Submit</button>
+  </div>
+
+  <div id="recallStatus" class="text-center text-xs text-indigo-200/70">You can start when ready.</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/games/recall.js"></script>
+{% endblock %}

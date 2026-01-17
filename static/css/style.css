@@ -265,7 +265,211 @@
   .menu-item.danger{
     color: #b91c1c;
   }
-  .menu-item.danger:hover{
+.menu-item.danger:hover{
     background: rgba(185, 28, 28, 0.08);
+  }
+
+  /* Stroop game */
+  .stroop-card {
+    display: grid;
+    gap: 14px;
+  }
+
+  .stroop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .stroop-word {
+    font-size: 40px;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 0.06em;
+    padding: 16px 0;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.03);
+  }
+
+  .stroop-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  .stroop-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 10px;
+  }
+
+  .stroop-options[aria-disabled="true"] {
+    opacity: 0.5;
+  }
+
+  .stroop-option {
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+
+  .stroop-status {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Recall game */
+  .recall-card {
+    display: grid;
+    gap: 14px;
+  }
+
+  .recall-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .recall-words {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+
+  .recall-word {
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 12px 8px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.04);
+  }
+
+  .recall-timer {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .recall-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  .recall-input {
+    display: grid;
+    gap: 10px;
+  }
+
+  .recall-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .recall-field {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .recall-status {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Orientation game */
+  .orientation-card {
+    display: grid;
+    gap: 14px;
+  }
+
+  .orientation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .orientation-setup,
+  .orientation-question {
+    display: grid;
+    gap: 10px;
+  }
+
+  .orientation-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .orientation-field {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .orientation-prompt {
+    font-weight: 800;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .orientation-status {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Tapping game */
+  .tapping-card {
+    display: grid;
+    gap: 14px;
+  }
+
+  .tapping-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tapping-timer {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .tapping-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.04);
+  }
+
+  .tapping-area[aria-disabled="true"] {
+    opacity: 0.5;
+  }
+
+  .tapping-target {
+    width: 140px;
+    height: 140px;
+    border-radius: 999px;
+    border: 2px solid rgba(15, 23, 42, 0.15);
+    background: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .tapping-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  .tapping-status {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
   }
   

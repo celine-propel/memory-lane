@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">Color Interference (Stroop)</h1>
+  <p class="text-indigo-200/60 mt-2 font-medium">Choose the ink color, not the word. The test includes 12 trials.</p>
+</div>
+
+<div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-5">
+  <div class="flex items-center justify-between">
+    <div id="stroopProgress" class="px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full bg-indigo-500/20 text-indigo-200">Ready</div>
+    <div id="stroopMeta" class="text-sm text-slate-300 font-semibold">Errors: 0</div>
+  </div>
+
+  <div id="stroopWord" class="text-4xl sm:text-5xl font-black text-center tracking-[0.35em] py-5 rounded-2xl bg-white/5">READY</div>
+
+  <div class="flex justify-center">
+    <button id="stroopStart" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400 transition shadow-md">Start</button>
+  </div>
+
+  <div id="stroopOptions" class="grid grid-cols-2 gap-3" aria-disabled="true">
+    <button class="stroop-option rounded-xl bg-white/10 text-white text-sm font-bold py-2 hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed" data-color="Red" type="button">Red</button>
+    <button class="stroop-option rounded-xl bg-white/10 text-white text-sm font-bold py-2 hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed" data-color="Blue" type="button">Blue</button>
+    <button class="stroop-option rounded-xl bg-white/10 text-white text-sm font-bold py-2 hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed" data-color="Green" type="button">Green</button>
+    <button class="stroop-option rounded-xl bg-white/10 text-white text-sm font-bold py-2 hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed" data-color="Yellow" type="button">Yellow</button>
+  </div>
+
+  <div id="stroopStatus" class="text-center text-xs text-indigo-200/70">Press start when you are ready.</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/games/stroop.js"></script>
+{% endblock %}

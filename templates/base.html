@@ -106,5 +106,8 @@
     const menu = document.getElementById('profileMenu');
     if(btn) btn.addEventListener('click', () => menu.classList.toggle('hidden'));
   </script>
+
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>
