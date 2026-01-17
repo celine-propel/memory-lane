@@ -72,3 +72,25 @@ def get_scores(user_id, limit=20):
     ).fetchall()
     conn.close()
     return rows
+
+
+def save_schedule(user_id, schedule_data, num_days, created_at):
+    """Save or update user's schedule"""
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO schedule (user_id, schedule_data, num_days, created_at) VALUES (?,?,?,?)",
+        (user_id, schedule_data, num_days, created_at)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_latest_schedule(user_id):
+    """Get the latest schedule for a user"""
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT * FROM schedule WHERE user_id=? ORDER BY created_at DESC LIMIT 1",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    return row

@@ -16,3 +16,12 @@ CREATE TABLE IF NOT EXISTS score (
   details TEXT,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );
+
+CREATE TABLE IF NOT EXISTS schedule (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  schedule_data TEXT NOT NULL,
+  num_days INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES user(id)
+);
