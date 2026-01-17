@@ -150,21 +150,13 @@ def practice_visual_puzzle():
 @app.route("/practice")
 @login_required
 def practice():
-    plan = [
-        {"name": "Speed Warm-up",
-            "desc": "Short reaction drills to reduce hesitation.", "days": "Mon/Wed/Fri"},
-        {"name": "Inhibition Practice",
-            "desc": "Stroop-like practice with easier settings.", "days": "Tue/Thu"},
-        {"name": "Focus Reset",
-            "desc": "1-minute attention reset before tests.", "days": "Daily"},
-    ]
     games = [
         {"id": "typing", "name": "Typing Speed",
             "domain": "Attention", "minutes": 2},
         {"id": "visual_puzzle", "name": "Visual Puzzle",
             "domain": "Visualization", "minutes": 2},
     ]
-    return render_template("practice.html", plan=plan, games=games, user=current_user(), subtitle="Personalized training")
+    return render_template("practice.html", games=games, user=current_user(), subtitle="Personalized training")
 
 
 @app.route("/dashboard")
