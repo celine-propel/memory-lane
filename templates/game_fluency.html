@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col items-center justify-center py-10 text-center">
+  <div id="game-ui" class="w-full max-w-2xl">
+    <div class="text-[10px] font-black text-indigo-400 mb-4 uppercase tracking-widest">
+      Verbal Fluency · <span id="time-left">30</span>s left
+    </div>
+
+    <h2 class="text-3xl sm:text-4xl font-black text-white mb-2">
+      Name as many <span id="category-label" class="text-indigo-200">—</span>
+    </h2>
+    <div class="text-lg sm:text-xl font-black text-white/90 mb-8">
+      that start with <span id="letter-label" class="text-indigo-200">—</span>
+    </div>
+
+    <!-- Live subtitle / last heard -->
+    <div class="mb-6">
+      <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Last Heard</div>
+      <div id="subtitle"
+           class="text-4xl sm:text-5xl font-black uppercase tracking-wide text-slate-400">
+        Waiting…
+      </div>
+      <div id="subtitle-note" class="text-xs text-indigo-200/60 mt-2">
+        Speak clearly. Say one item at a time.
+      </div>
+    </div>
+
+    <!-- Score + list -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+        <div class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200/70">Counted</div>
+        <div id="counted" class="text-5xl font-black text-white mt-2">0</div>
+        <div class="text-xs text-slate-300/70 mt-2">Unique items that match letter.</div>
+      </div>
+
+      <div class="rounded-2xl bg-white/5 border border-white/10 p-5 text-left">
+        <div class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200/70 mb-2">Accepted Items</div>
+        <div id="accepted-list" class="text-sm text-white/90 space-y-1 max-h-36 overflow-auto"></div>
+        <div class="text-xs text-slate-300/60 mt-2">Duplicates don’t count.</div>
+      </div>
+    </div>
+
+    <div id="mic-status" class="flex items-center gap-3 justify-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+      <div class="w-3 h-3 rounded-full bg-rose-500 animate-pulse" id="status-indicator"></div>
+      <span id="status-text">Waiting for Mic...</span>
+    </div>
+
+    <div class="mt-6 flex justify-center gap-3">
+      <button id="start-btn" type="button"
+        class="px-5 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-400 transition shadow-md">
+        Start
+      </button>
+      <button id="stop-btn" type="button" disabled
+        class="px-5 py-2.5 rounded-xl bg-white/10 text-white text-sm font-bold hover:bg-white/20 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+        Submit
+      </button>
+    </div>
+  </div>
+
+  <div id="score-display" class="hidden text-white font-black">SAVING SIGNAL...</div>
+</div>
+
+<script>
+(() => {
+  // ===== Config =====
+  const DURATION_S = 30;
+
+  // Choose from a pool each run (feel free to expand)
+  const PROMPTS = [
+    { category: "animals", letter: "a", domain: "Language" },
+    { category: "fruits", letter: "b", domain: "Language" },
+    { category: "countries", letter: "c", domain: "Language" },
+    { category: "foods", letter: "s", domain: "Language" },
+    { category: "sports", letter: "t", domain: "Language" }
+  ];
+
+  // Basic “filler words” to ignore if speech recognition adds them
+  const STOPWORDS = new Set(["a","an","the","and","or","of","to","for","like"]);
+
+  // ===== DOM =====
+  const timeLeftEl = document.getElementById("time-left");
+  const categoryEl = document.getElementById("category-label");
+  const letterEl = document.getElementById("letter-label");
+  const subtitleEl = document.getElementById("subtitle");
+  const countedEl = document.getElementById("counted");
+  const acceptedListEl = document.getElementById("accepted-list");
+
+  const startBtn = document.getElementById("start-btn");
+  const stopBtn = document.getElementById("stop-btn");
+
+  const statusIndicator = document.getElementById("status-indicator");
+  const statusText = document.getElementById("status-text");
+
+  const gameUI = document.getElementById("game-ui");
+  const scoreDisplay = document.getElementById("score-display");
+
+  // ===== State =====
+  let prompt = null;
+  let running = false;
+  let timerId = null;
+  let endAt = 0;
+
+  // store accepted items (normalized)
+  const accepted = new Set();
+  const acceptedRaw = []; // for display
+
+  // metrics
+  let totalUtterances = 0;
+  let rejectedUtterances = 0;
+  let duplicates = 0;
+
+  // Speech recognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+
+  // ===== Helpers =====
+  function pickPrompt() {
+    return PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  }
+
+  function setSubtitle(text, ok) {
+    subtitleEl.textContent = text || "—";
+    subtitleEl.className =
+      "text-4xl sm:text-5xl font-black uppercase tracking-wide " +
+      (ok === true ? "text-emerald-300" : ok === false ? "text-rose-300" : "text-slate-400");
+  }
+
+  function addAccepted(word) {
+    accepted.add(word);
+    acceptedRaw.unshift(word);
+    // render list (latest first)
+    acceptedListEl.innerHTML = acceptedRaw.slice(0, 24).map(w =>
+      `<div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10">${w}</div>`
+    ).join("");
+    countedEl.textContent = String(accepted.size);
+  }
+
+  function normalizeToken(t) {
+    return t
+      .toLowerCase()
+      .replace(/[^a-z]/g, "")      // keep letters only
+      .trim();
+  }
+
+  // Very simple extraction:
+  // - take transcript, split into tokens, ignore stopwords, take the FIRST "real" token
+  // - you can later switch to last token or detect multiple items
+  function extractCandidate(transcript) {
+    const tokens = transcript.split(/\s+/).map(normalizeToken).filter(Boolean);
+    for (const tok of tokens) {
+      if (!STOPWORDS.has(tok)) return tok;
+    }
+    return "";
+  }
+
+  function matchesLetter(word, letter) {
+    return word && word[0] === letter;
+  }
+
+  function updateTimer() {
+    const now = Date.now();
+    const remainingMs = Math.max(0, endAt - now);
+    const remainingS = Math.ceil(remainingMs / 1000);
+    timeLeftEl.textContent = String(remainingS);
+
+    if (remainingMs <= 0) finishGame();
+  }
+
+  function setMicStatus(listening) {
+    if (listening) {
+      statusIndicator.classList.remove("bg-rose-500", "animate-pulse");
+      statusIndicator.classList.add("bg-emerald-500");
+      statusText.textContent = "Listening";
+    } else {
+      statusIndicator.classList.remove("bg-emerald-500");
+      statusIndicator.classList.add("bg-rose-500", "animate-pulse");
+      statusText.textContent = "Mic stopped";
+    }
+  }
+
+  async function finishGame() {
+    if (!running) return;
+    running = false;
+
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+
+    stopBtn.disabled = true;
+    startBtn.disabled = true;
+
+    try { if (recognition) recognition.stop(); } catch (e) {}
+
+    gameUI.classList.add("hidden");
+    scoreDisplay.classList.remove("hidden");
+    scoreDisplay.textContent = "SAVING SIGNAL...";
+
+    const value = accepted.size;
+
+    await fetch("/api/score", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        game: "verbal_fluency",
+        domain: prompt.domain || "Language",
+        value,
+        category: prompt.category,
+        letter: prompt.letter.toUpperCase(),
+        duration_s: DURATION_S,
+        total_utterances: totalUtterances,
+        rejected_utterances: rejectedUtterances,
+        duplicates,
+        accepted_items: acceptedRaw   // optional; remove if you don’t want to store raw words
+      })
+    });
+
+    window.location.href = "/dashboard";
+  }
+
+  function startGame() {
+    if (running) return;
+
+    prompt = pickPrompt();
+    categoryEl.textContent = prompt.category.toUpperCase();
+    letterEl.textContent = prompt.letter.toUpperCase();
+
+    // reset state
+    accepted.clear();
+    acceptedRaw.length = 0;
+    acceptedListEl.innerHTML = "";
+    countedEl.textContent = "0";
+    totalUtterances = 0;
+    rejectedUtterances = 0;
+    duplicates = 0;
+
+    setSubtitle("Ready…", null);
+
+    // start timer
+    running = true;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+
+    endAt = Date.now() + DURATION_S * 1000;
+    updateTimer();
+    timerId = setInterval(updateTimer, 150);
+
+    // start speech recognition
+    if (!SpeechRecognition) {
+      setSubtitle("Speech not supported", false);
+      setMicStatus(false);
+      // still allow submit
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setMicStatus(true);
+      setSubtitle("Speak now…", null);
+    };
+
+    recognition.onresult = (event) => {
+      if (!running) return;
+
+      // Build transcript from latest results
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript + " ";
+      }
+      transcript = transcript.trim().toLowerCase();
+      if (!transcript) return;
+
+      const candidate = extractCandidate(transcript);
+      if (!candidate) return;
+
+      // To reduce spam from interim results, only handle when speech is "final"
+      // BUT browsers differ. We'll accept both, with a small safeguard:
+      // if the same candidate repeats rapidly, Set will treat it as duplicate anyway.
+
+      totalUtterances += 1;
+
+      const okLetter = matchesLetter(candidate, prompt.letter);
+      if (!okLetter) {
+        rejectedUtterances += 1;
+        setSubtitle(candidate, false);
+        return;
+      }
+
+      if (accepted.has(candidate)) {
+        duplicates += 1;
+        setSubtitle(candidate + " (duplicate)", false);
+        return;
+      }
+
+      // accept it
+      setSubtitle(candidate, true);
+      addAccepted(candidate);
+    };
+
+    recognition.onerror = () => {
+      setMicStatus(false);
+      setSubtitle("Mic error", false);
+    };
+
+    recognition.onend = () => {
+      // keep it running while game is active
+      if (running) {
+        try { recognition.start(); } catch (e) {}
+      } else {
+        setMicStatus(false);
+      }
+    };
+
+    try { recognition.start(); } catch (e) {
+      setMicStatus(false);
+      setSubtitle("Could not start mic", false);
+    }
+  }
+
+  startBtn.addEventListener("click", startGame);
+  stopBtn.addEventListener("click", finishGame);
+})();
+</script>
+{% endblock %}

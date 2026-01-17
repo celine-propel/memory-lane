@@ -95,6 +95,8 @@ def tests():
             "domain": "Orientation", "minutes": 1},
         {"id": "tapping", "name": "Finger Tapping",
             "domain": "Attention", "minutes": 1},
+        {"id": "fluency", "name": "Speech Fluency",
+            "domain": "Language", "minutes": 1},
     ]
     return render_template("tests.html", games=games, user=current_user(), subtitle="Assessment tests")
 
@@ -134,6 +136,10 @@ def game_orientation():
 def game_tapping():
     return render_template("game_tapping.html", user=current_user(), subtitle="Finger Tapping")
 
+@app.route("/game/fluency")
+@login_required
+def game_fluency():
+    return render_template("game_fluency.html", user=current_user(), subtitle="Speech Fluency")
 
 @app.route("/game/visual_puzzle")
 @login_required
