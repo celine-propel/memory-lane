@@ -38,6 +38,20 @@
   let timings = [];
   let questionStart = 0;
   let customAnswers = [];
+  let practiceLevel = "medium";
+  let practiceContext = "mid";
+
+  async function initPractice() {
+    if (!window.PRACTICE_MODE) return;
+    try {
+      const res = await fetch(`/api/practice/difficulty?game=orientation`);
+      const data = await res.json();
+      if (data.ok) {
+        practiceLevel = data.level;
+        practiceContext = data.context;
+      }
+    } catch {}
+  }
 
   function setAnswerMode(useSelect) {
     if (useSelect) {
@@ -98,8 +112,9 @@
     stageEl.textContent = "Loading";
     statusEl.textContent = "Preparing prompts...";
     questionEl.style.display = "none";
-
-    const res = await fetch("/api/orientation/prompts");
+    await initPractice();
+    const level = window.PRACTICE_MODE ? practiceLevel : "medium";
+    const res = await fetch(`/api/orientation/prompts?level=${level}`);
     const data = await res.json();
     questions = data.questions || [];
 
@@ -218,6 +233,8 @@
         game: "orientation",
         domain: "Orientation",
         value: totalScore,
+        practice_action: window.PRACTICE_MODE ? practiceLevel : null,
+        practice_context: window.PRACTICE_MODE ? practiceContext : null,
         details
       }),
     })

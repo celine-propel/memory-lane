@@ -1,7 +1,10 @@
 (() => {
   let WORDS = [];
-  const STUDY_SECONDS = 20;
-  const DELAY_SECONDS = 15;
+  let STUDY_SECONDS = 20;
+  let DELAY_SECONDS = 15;
+  let WORD_COUNT = 5;
+  let practiceLevel = "medium";
+  let practiceContext = "mid";
 
   const stageEl = document.getElementById("recallStage");
   const metaEl = document.getElementById("recallMeta");
@@ -22,21 +25,44 @@
   let recallStart = 0;
 
   // Fetch random words on page load
-  fetch("/api/recall-words")
-    .then((res) => res.json())
-    .then((data) => {
+  async function initPractice() {
+    if (!window.PRACTICE_MODE) return;
+    try {
+      const res = await fetch(`/api/practice/difficulty?game=recall`);
+      const data = await res.json();
+      if (data.ok) {
+        practiceLevel = data.level;
+        practiceContext = data.context;
+        if (practiceLevel === "easy") {
+          WORD_COUNT = 4;
+          STUDY_SECONDS = 20;
+          DELAY_SECONDS = 10;
+        } else if (practiceLevel === "hard") {
+          WORD_COUNT = 6;
+          STUDY_SECONDS = 15;
+          DELAY_SECONDS = 20;
+        }
+      }
+    } catch {}
+  }
+
+  function fetchWords() {
+    fetch(`/api/recall-words?count=${WORD_COUNT}`)
+      .then((res) => res.json())
+      .then((data) => {
       WORDS = data.words;
       renderWords();
       if (phase === "study") {
         showWords(true);
       }
-    })
-    .catch((err) => {
-      console.error("Failed to load words:", err);
-      // Fallback words
-      WORDS = ["face", "velvet", "church", "daisy", "red"];
+      })
+      .catch((err) => {
+        console.error("Failed to load words:", err);
+        // Fallback words
+      WORDS = ["face", "velvet", "church", "daisy", "red"].slice(0, WORD_COUNT);
       renderWords();
-    });
+      });
+  }
 
   function renderWords() {
     if (wordsEl) {
@@ -171,6 +197,8 @@
         game: "recall",
         domain: "Memory",
         value: score,
+        practice_action: window.PRACTICE_MODE ? practiceLevel : null,
+        practice_context: window.PRACTICE_MODE ? practiceContext : null,
         details: {
           SATURN_SCORE_RECALL_FIVEWORDS: score,
           SATURN_TIME_RECALL_FIVEWORDS_ms: elapsed
@@ -200,4 +228,5 @@
 
   inputWrap.style.display = "none";
   showWords(false);
+  initPractice().then(fetchWords);
 })();

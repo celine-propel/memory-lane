@@ -1,5 +1,5 @@
 (() => {
-    const PAIRS = 8;              // 8 pairs => 16 nodes (1..8 and A..H)
+    let PAIRS = 8;              // 8 pairs => 16 nodes (1..8 and A..H)
     const NODE_SIZE = 52;         // px diameter
     const BOARD_PADDING = 18;     // keep away from edges
     const MIN_DIST = 62;          // min distance between node centers
@@ -17,6 +17,8 @@
     let errors = 0;
     let startTime = 0;
     let timeoutId = null;
+    let practiceLevel = "medium";
+    let practiceContext = "mid";
   
     // Order: 1, A, 2, B, 3, C ...
     let sequence = [];
@@ -233,6 +235,8 @@
           game: "trails_switch",
           domain: "Executive Function",
           value: mocaTrailsB,
+          practice_action: window.PRACTICE_MODE ? practiceLevel : null,
+          practice_context: window.PRACTICE_MODE ? practiceContext : null,
           details: {
             MoCA_1_SCORE_trailsB: mocaTrailsB,
             elapsed_ms: elapsed,
@@ -286,5 +290,20 @@
     startBtn.addEventListener("click", start);
   
     setProgress("Ready");
+    initPractice();
   })();
   
+    async function initPractice() {
+      if (!window.PRACTICE_MODE) return;
+      try {
+        const res = await fetch(`/api/practice/difficulty?game=trails_switch`);
+        const data = await res.json();
+        if (data.ok) {
+          practiceLevel = data.level;
+          practiceContext = data.context;
+          if (practiceLevel === "easy") PAIRS = 4;
+          if (practiceLevel === "medium") PAIRS = 6;
+          if (practiceLevel === "hard") PAIRS = 8;
+        }
+      } catch {}
+    }

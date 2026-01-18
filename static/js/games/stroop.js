@@ -1,5 +1,5 @@
 (() => {
-  const TRIALS = 12;
+  let TRIALS = 12;
   const COLORS = [
     { name: "Red", hex: "#ef4444" },
     { name: "Blue", hex: "#3b82f6" },
@@ -18,6 +18,8 @@
   if (!wordEl) return;
 
   let running = false;
+  let practiceLevel = "medium";
+  let practiceContext = "mid";
   let trialIndex = 0;
   let errors = 0;
   let correctOnFirstTry = 0; // NEW: Track perfect hits
@@ -83,6 +85,8 @@
         game: "stroop",
         domain: "Executive Function",
         value: score,
+        practice_action: window.PRACTICE_MODE ? practiceLevel : null,
+        practice_context: window.PRACTICE_MODE ? practiceContext : null,
         details: {
           SATURN_SCORE_STROOP_POINTS: score,
           SATURN_TIME_STROOP_ERRORS: errors,
@@ -136,4 +140,18 @@
   });
 
   setOptionsEnabled(false);
+  initPractice();
 })();
+  async function initPractice() {
+    if (!window.PRACTICE_MODE) return;
+    try {
+      const res = await fetch(`/api/practice/difficulty?game=stroop`);
+      const data = await res.json();
+      if (data.ok) {
+        practiceLevel = data.level;
+        practiceContext = data.context;
+        if (practiceLevel === "easy") TRIALS = 8;
+        if (practiceLevel === "hard") TRIALS = 16;
+      }
+    } catch {}
+  }

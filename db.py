@@ -199,3 +199,58 @@ def get_orientation_questions_by_ids(user_id, ids):
     ).fetchall()
     conn.close()
     return rows
+
+
+def get_bandit_state(user_id, game, context):
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT action, count, value
+           FROM bandit_state
+           WHERE user_id=? AND game=? AND context=?""",
+        (user_id, game, context)
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def update_bandit_state(user_id, game, context, action, reward, updated_at):
+    conn = get_conn()
+    row = conn.execute(
+        """SELECT count, value
+           FROM bandit_state
+           WHERE user_id=? AND game=? AND context=? AND action=?""",
+        (user_id, game, context, action)
+    ).fetchone()
+
+    if row:
+        count = int(row["count"]) + 1
+        value = float(row["value"])
+        new_value = value + (reward - value) / count
+        conn.execute(
+            """UPDATE bandit_state
+               SET count=?, value=?, updated_at=?
+               WHERE user_id=? AND game=? AND context=? AND action=?""",
+            (count, new_value, updated_at, user_id, game, context, action)
+        )
+    else:
+        conn.execute(
+            """INSERT INTO bandit_state
+               (user_id, game, context, action, count, value, updated_at)
+               VALUES (?,?,?,?,?,?,?)""",
+            (user_id, game, context, action, 1, float(reward), updated_at)
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_scores_by_game(user_id, game, limit=5):
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT id, game, domain, value, created_at, details
+           FROM score
+           WHERE user_id=? AND game=?
+           ORDER BY id DESC LIMIT ?""",
+        (user_id, game, limit)
+    ).fetchall()
+    conn.close()
+    return rows

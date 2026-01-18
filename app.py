@@ -19,7 +19,8 @@ from db import (
     add_score, get_scores, save_schedule, get_latest_schedule,
     update_user_profile,
     add_orientation_question, get_orientation_questions,
-    deactivate_orientation_question, get_orientation_questions_by_ids
+    deactivate_orientation_question, get_orientation_questions_by_ids,
+    get_bandit_state, update_bandit_state, get_scores_by_game
 )
 
 app = Flask(__name__)
@@ -227,6 +228,54 @@ def build_feature_row(user, scores):
     return pd.DataFrame([data])
 
 
+def game_higher_better(game):
+    return game not in {"tapping"}
+
+
+def compute_context_bucket(game, scores):
+    # scores: list of sqlite rows or dicts, newest first
+    values = []
+    for s in scores:
+        val = s["value"] if isinstance(s, dict) else s["value"]
+        if val is None:
+            continue
+        values.append(float(val))
+    if len(values) < 3:
+        return "mid"
+
+    # Higher is better except tapping (ms/tap)
+    if not game_higher_better(game):
+        values = [-v for v in values]
+
+    values_sorted = sorted(values)
+    low_idx = max(0, len(values_sorted) // 3)
+    high_idx = max(0, (2 * len(values_sorted)) // 3)
+    low_th = values_sorted[low_idx]
+    high_th = values_sorted[high_idx]
+    last = values[0]
+
+    if last <= low_th:
+        return "low"
+    if last >= high_th:
+        return "high"
+    return "mid"
+
+
+def select_bandit_action(user_id, game, context):
+    import random
+    actions = ["easy", "medium", "hard"]
+    rows = get_bandit_state(user_id, game, context)
+    stats = {r["action"]: {"count": r["count"], "value": r["value"]} for r in rows}
+
+    total_n = sum(s["count"] for s in stats.values()) if stats else 0
+    epsilon = max(0.1, 1 / (total_n + 1) ** 0.5)
+    if random.random() < epsilon or not stats:
+        return random.choice(actions), epsilon, stats
+
+    best = max(actions, key=lambda a: stats.get(a, {"value": 0}).get("value", 0))
+    return best, epsilon, stats
+
+
 @app.route("/")
 def home():
     return render_template("home.html", user=current_user(), subtitle="Quick signals, tracked over time")
@@ -370,6 +419,7 @@ def profile_delete_question(q_id):
 @login_required
 def api_orientation_prompts():
     user = current_user()
+    level = (request.args.get("level") or "medium").strip().lower()
 
     device = [
         {"key": "month", "label": "What month is it?", "type": "device"},
@@ -377,6 +427,11 @@ def api_orientation_prompts():
         {"key": "year", "label": "What year is it?", "type": "device"},
         {"key": "day", "label": "What day of the week is it?", "type": "device"},
     ]
+
+    if level == "easy":
+        device = [q for q in device if q["key"] in {"month", "year", "day"}]
+    elif level == "hard":
+        device = device
 
     custom_rows = get_orientation_questions(user["id"], active_only=True)
     custom_rows = list(custom_rows)
@@ -631,12 +686,20 @@ def dashboard():
         except Exception:
             prediction = None
 
+    difficulty_levels = {}
+    for game_id in ["stroop", "recall", "orientation", "tapping", "trails_switch", "visual_puzzle"]:
+        recent = get_scores_by_game(user["id"], game_id, limit=5)
+        context = compute_context_bucket(game_id, recent)
+        action, _, _ = select_bandit_action(user["id"], game_id, context)
+        difficulty_levels[game_id] = action
+
     return render_template(
         "dashboard.html",
         user=user,
         scores=scores,
         latest_by_domain=latest_by_domain,
         prediction=prediction,
+        difficulty_levels=difficulty_levels,
         subtitle="Your results"
     )
 
@@ -651,7 +714,44 @@ def api_score():
                          ) if payload.get("details") else None
     add_score(user["id"], payload.get("game"), payload.get(
         "domain"), payload.get("value"), datetime.utcnow().isoformat(), details)
+
+    # Optional: bandit update for practice sessions
+    action = payload.get("practice_action")
+    context = payload.get("practice_context")
+    if action and context:
+        game = payload.get("game")
+        recent = get_scores_by_game(user["id"], game, limit=2)
+        reward = 0.0
+        if len(recent) >= 2:
+            current = float(recent[0]["value"])
+            prev = float(recent[1]["value"])
+            delta = current - prev
+            if not game_higher_better(game):
+                delta = -delta
+            reward = 1.0 if delta > 0 else (-1.0 if delta < 0 else 0.0)
+        update_bandit_state(
+            user["id"], game, context, action, reward, datetime.utcnow().isoformat()
+        )
     return jsonify({"ok": True})
+
+
+@app.get("/api/practice/difficulty")
+@login_required
+def api_practice_difficulty():
+    user = current_user()
+    game = (request.args.get("game") or "").strip()
+    if not game:
+        return jsonify({"ok": False, "error": "missing game"}), 400
+    recent = get_scores_by_game(user["id"], game, limit=5)
+    context = compute_context_bucket(game, recent)
+    action, epsilon, stats = select_bandit_action(user["id"], game, context)
+    return jsonify({
+        "ok": True,
+        "level": action,
+        "context": context,
+        "epsilon": epsilon,
+        "stats": stats
+    })
 
 
 @app.get("/api/typing-text")
@@ -698,6 +798,8 @@ def get_typing_text():
 @login_required
 def get_recall_words():
     """Generate 5 random words for recall game."""
+    count = int(request.args.get("count", 5))
+    count = max(3, min(8, count))
     try:
         # Use Ollama to generate words via local LLM
         response = ollama.generate(
@@ -707,10 +809,11 @@ def get_recall_words():
         )
 
         words_str = response['response'].strip()
-        words = [w.strip().lower() for w in words_str.split(',')][:5]
+        words = [w.strip().lower() for w in words_str.split(',')]
+        words = words[:count]
 
         # Fallback if we don't get exactly 5 words
-        if len(words) < 5:
+        if len(words) < count:
             import random
             fallback_words = [
                 ["elephant", "crystal", "mountain", "piano", "harbor"],
@@ -719,10 +822,10 @@ def get_recall_words():
                 ["island", "symphony", "pearl", "venture", "wisdom"],
                 ["bridge", "twilight", "emerald", "rhythm", "horizon"],
             ]
-            words = random.choice(fallback_words)
+            words = random.choice(fallback_words)[:count]
 
         return jsonify({
-            "words": words[:5]
+            "words": words[:count]
         })
     except Exception as e:
         print(f"LLM Error: {e}")

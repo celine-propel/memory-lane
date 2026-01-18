@@ -42,3 +42,18 @@ CREATE TABLE IF NOT EXISTS orientation_question (
   created_at TEXT NOT NULL,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );
+
+CREATE TABLE IF NOT EXISTS bandit_state (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  game TEXT NOT NULL,
+  context TEXT NOT NULL,
+  action TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  value REAL NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES user(id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bandit_state_unique
+  ON bandit_state (user_id, game, context, action);

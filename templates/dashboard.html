@@ -36,6 +36,20 @@
   </div>
   {% endif %}
 
+  {% if difficulty_levels %}
+  <div class="mb-8 p-5 bg-white/5 backdrop-blur-md rounded-[1.5rem] border border-white/10">
+    <div class="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-3">Practice Difficulty</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+      {% for game, level in difficulty_levels.items() %}
+        <div class="flex items-center justify-between rounded-xl bg-slate-950/40 border border-white/10 px-3 py-2">
+          <span class="text-indigo-200/70 uppercase text-[10px] font-black tracking-widest">{{ game.replace('_', ' ') }}</span>
+          <span class="text-white font-bold uppercase text-[10px]">{{ level }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <section class="mb-10">
     <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-4">Latest by Domain</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

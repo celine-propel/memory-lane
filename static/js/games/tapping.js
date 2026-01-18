@@ -1,5 +1,5 @@
 (() => {
-  const DURATION_SECONDS = 15;
+  let DURATION_SECONDS = 15;
 
   const stageEl = document.getElementById("tappingStage");
   const metaEl = document.getElementById("tappingMeta");
@@ -12,9 +12,26 @@
   if (!stageEl) return;
 
   let running = false;
+  let practiceLevel = "medium";
+  let practiceContext = "mid";
   let taps = 0;
   let remaining = DURATION_SECONDS;
   let timerId = null;
+  let isReady = false;
+
+  async function initPractice() {
+    if (!window.PRACTICE_MODE) return;
+    try {
+      const res = await fetch(`/api/practice/difficulty?game=tapping`);
+      const data = await res.json();
+      if (data.ok) {
+        practiceLevel = data.level;
+        practiceContext = data.context;
+        if (practiceLevel === "easy") DURATION_SECONDS = 10;
+        if (practiceLevel === "hard") DURATION_SECONDS = 20;
+      }
+    } catch {}
+  }
 
   function setEnabled(enabled) {
     areaEl.setAttribute("aria-disabled", enabled ? "false" : "true");
@@ -37,6 +54,7 @@
 
   function start() {
     if (running) return;
+    if (!isReady) return;
     running = true;
     taps = 0;
     remaining = DURATION_SECONDS;
@@ -65,6 +83,8 @@
         game: "tapping",
         domain: "Attention",
         value: msPerButton ?? 0,
+        practice_action: window.PRACTICE_MODE ? practiceLevel : null,
+        practice_context: window.PRACTICE_MODE ? practiceContext : null,
         details: {
           SATURN_MOTOR_SPEED_ms_per_button: msPerButton,
           taps,
@@ -91,4 +111,7 @@
   startBtn.addEventListener("click", start);
 
   setEnabled(false);
+  initPractice().then(() => {
+    isReady = true;
+  });
 })();

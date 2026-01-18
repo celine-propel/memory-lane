@@ -1,7 +1,7 @@
 (() => {
     // ===== Config =====
     const GRID = 3;                 // 3x3
-    const DISPLAY_MS = 6000;        // preview time
+    let DISPLAY_MS = 6000;        // preview time
     const MAX_TIME_MS = 60000;      // optional cap (auto-submits at 60s). Set null to disable.
   
     // 6 pieces, all used
@@ -31,6 +31,8 @@
     let mistakes = 0;   // CURRENT incorrect placements (not cumulative)
     let startTime = 0;
     let timeoutId = null;
+    let practiceLevel = "medium";
+    let practiceContext = "mid";
   
     // placement: slotIndex -> pieceId (or null)
     const placed = Array(GRID * GRID).fill(null);
@@ -284,6 +286,8 @@
           game: "visual_puzzle",
           domain: "Visuospatial",
           value: score,
+          practice_action: window.PRACTICE_MODE ? practiceLevel : null,
+          practice_context: window.PRACTICE_MODE ? practiceContext : null,
           elapsed_ms: elapsed,
           moves,
           mistakes_current: mistakes,
@@ -389,5 +393,19 @@
     });
   
     setProgress("Ready");
+    initPractice();
   })();
   
+    async function initPractice() {
+      if (!window.PRACTICE_MODE) return;
+      try {
+        const res = await fetch(`/api/practice/difficulty?game=visual_puzzle`);
+        const data = await res.json();
+        if (data.ok) {
+          practiceLevel = data.level;
+          practiceContext = data.context;
+          if (practiceLevel === "easy") DISPLAY_MS = 7000;
+          if (practiceLevel === "hard") DISPLAY_MS = 4000;
+        }
+      } catch {}
+    }
