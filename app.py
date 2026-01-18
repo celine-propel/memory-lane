@@ -50,18 +50,47 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        # Existing core fields
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
+        
+        # New demographic fields
+        age = request.form.get("age")
+        gender = request.form.get("gender")
+        gender_other = request.form.get("gender_other")
+        ethnicity = request.form.get("ethnicity")
+        city = request.form.get("city")
+        state = request.form.get("state")
+        country = request.form.get("country")
+
         if not name or not email or not password:
             return render_template("register.html", error="Please fill out all fields.")
+        
         if get_user_by_email(email):
             return render_template("register.html", error="Email already registered.")
+        
         pw_hash = generate_password_hash(password)
-        create_user(name, email, pw_hash, datetime.utcnow().isoformat())
+        
+        # Call the updated create_user function with all new parameters
+        create_user(
+            name, 
+            email, 
+            pw_hash, 
+            datetime.utcnow().isoformat(),
+            age=age,
+            gender=gender,
+            gender_other=gender_other,
+            ethnicity=ethnicity,
+            city=city,
+            state=state,
+            country=country
+        )
+        
         user = get_user_by_email(email)
         session["user_id"] = user["id"]
         return redirect(url_for("dashboard"))
+        
     return render_template("register.html")
 
 

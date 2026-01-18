@@ -3,7 +3,14 @@ CREATE TABLE IF NOT EXISTS user (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  age INTEGER,
+  gender TEXT,
+  gender_other TEXT,
+  ethnicity TEXT,
+  city TEXT,
+  state TEXT,
+  country TEXT
 );
 
 CREATE TABLE IF NOT EXISTS score (

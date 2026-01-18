@@ -27,11 +27,19 @@ def init_db():
     conn.close()
 
 
-def create_user(name, email, password_hash, created_at):
+def create_user(name, email, password_hash, created_at, age=None, gender=None, gender_other=None, ethnicity=None, city=None, state=None, country=None):
     conn = get_conn()
     conn.execute(
-        "INSERT INTO user (name, email, password_hash, created_at) VALUES (?,?,?,?)",
-        (name, email.lower().strip(), password_hash, created_at)
+        """INSERT INTO user (
+            name, email, password_hash, created_at, 
+            age, gender, gender_other, ethnicity, 
+            city, state, country
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            name, email.lower().strip(), password_hash, created_at, 
+            age, gender, gender_other, ethnicity, 
+            city, state, country
+        )
     )
     conn.commit()
     conn.close()
