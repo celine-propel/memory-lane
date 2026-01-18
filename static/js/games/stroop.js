@@ -54,15 +54,33 @@
     statusEl.textContent = "Select the ink color.";
   }
 
-  function nextTrial() {
+  let trialTimer = null;
+function nextTrial() {
+    if (trialTimer) clearTimeout(trialTimer); // Clear any existing timer
+
     if (trialIndex >= TRIALS) {
       finish();
       return;
     }
+    
     isFirstAttempt = true; 
     pickTrial();
     renderTrial();
     trialStart = performance.now();
+
+    // Set 4-second limit
+    trialTimer = setTimeout(() => {
+      handleTimeout();
+    }, 4000);
+  }
+
+  function handleTimeout() {
+    if (!running) return;
+    errors += 1;
+    isFirstAttempt = false;
+    times.push(4000); // Record maximum time as a penalty
+    trialIndex += 1;
+    nextTrial();
   }
 
   function finish() {
@@ -106,22 +124,23 @@
     });
   }
 
-  function handleChoice(colorName) {
+ function handleChoice(colorName) {
     if (!running) return;
+    if (trialTimer) clearTimeout(trialTimer); // Stop the clock
+
+    const elapsed = performance.now() - trialStart;
+    times.push(elapsed);
+
     if (colorName === currentInk.name) {
       if (isFirstAttempt) {
-        correctOnFirstTry += 1; // Increment only if they got it right first try
+        correctOnFirstTry += 1;
       }
-      const elapsed = performance.now() - trialStart;
-      times.push(elapsed);
-      trialIndex += 1;
-      nextTrial();
-      return;
+    } else {
+      errors += 1;
     }
-    isFirstAttempt = false; // They missed the first attempt for this trial
-    errors += 1;
-    metaEl.textContent = `Errors: ${errors}`;
-    statusEl.textContent = "Incorrect. Try the ink color.";
+
+    trialIndex += 1;
+    nextTrial();
   }
 
   startBtn.addEventListener("click", () => {

@@ -126,7 +126,11 @@
     }
   
     function setNextHint() {
-      // no hinting
+      const expected = sequence[seqIndex];
+      // clear old hint
+      boardEl.querySelectorAll(".tr-hint").forEach(el => el.classList.remove("tr-hint", "ring-2", "ring-indigo-300/70"));
+      const el = boardEl.querySelector(`[data-id="${expected}"]`);
+      if (el) el.classList.add("tr-hint", "ring-2", "ring-indigo-300/70");
     }
   
     function flashWrong(el) {
@@ -200,20 +204,18 @@
       setProgress(`Step ${seqIndex} / ${sequence.length}`);
       setStatus("Good. Keep going.");
       setNextHint();
-
+  
       if (seqIndex >= sequence.length) {
-        running = false;
-        setStatus("Done. Saving...");
-        finish();
+        // completed — you can auto-finish OR wait for submit
+        setStatus("Done! Press Submit to save.");
+        submitBtn.disabled = false;
+        running = false; // optional: freeze after completion
       }
     }
   
     function finish() {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-
+      submitBtn.disabled = true;
+  
       const elapsed = Math.round(performance.now() - startTime);
       const completed = seqIndex; // number of correct taps
       const totalSteps = sequence.length;
@@ -222,35 +224,37 @@
         ? Math.round(stepTimes.reduce((a, b) => a + b, 0) / stepTimes.length)
         : 0;
   
+      // Simple 0..3 score (tune later)
+      // More weight on completion + errors + speed
+      let score = 0;
       const completionRate = totalSteps ? (completed / totalSteps) : 0;
-      const mocaTrailsB = completionRate >= 1 ? 1 : 0;
-
-      setProgress(`Score: ${mocaTrailsB} / 1`);
+  
+      if (completionRate >= 0.95 && errors <= 2) score = 3;
+      else if (completionRate >= 0.75) score = 2;
+      else if (completionRate >= 0.45) score = 1;
+  
+      setProgress(`Score: ${score} / 3`);
       setStatus("Saving to your dashboard...");
-
+  
       fetch("/api/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           game: "trails_switch",
           domain: "Executive Function",
-          value: mocaTrailsB,
-          practice_action: window.PRACTICE_MODE ? practiceLevel : null,
-          practice_context: window.PRACTICE_MODE ? practiceContext : null,
-          details: {
-            MoCA_1_SCORE_trailsB: mocaTrailsB,
-            elapsed_ms: elapsed,
-            errors,
-            completed_steps: completed,
-            total_steps: totalSteps,
-            mean_step_ms: meanStep,
-            step_ms: stepTimes
-          }
+          value: score,
+          elapsed_ms: elapsed,
+          errors,
+          completed_steps: completed,
+          total_steps: totalSteps,
+          mean_step_ms: meanStep,
+          step_ms: stepTimes
         })
       }).then(() => {
         setStatus("Saved. Redirecting to dashboard...");
         setTimeout(() => (window.location.href = "/dashboard"), 800);
-      }).catch(() => {
+      })
+      .catch(() => {
         setStatus("Could not save score. Please try again.");
         startBtn.disabled = false;
         startBtn.classList.remove("opacity-50", "cursor-not-allowed");
@@ -269,41 +273,23 @@
       setNextHint();
   
       startBtn.disabled = true;
-      startBtn.classList.add("opacity-50", "cursor-not-allowed");
-
+      submitBtn.disabled = false;
+  
       running = true;
       setProgress(`Step 0 / ${sequence.length}`);
       setStatus("Tap 1 to begin.");
-
+  
       startTime = performance.now();
-
-      if (MAX_TIME_MS && Number.isFinite(MAX_TIME_MS)) {
-        timeoutId = setTimeout(() => {
-          if (!running) return;
-          running = false;
-          setStatus("Time is up. Saving...");
-          finish();
-        }, MAX_TIME_MS);
-      }
     }
-
+  
     startBtn.addEventListener("click", start);
+    submitBtn.addEventListener("click", () => {
+      // allow submit even if not fully complete (good for scoring)
+      if (startTime === 0) return;
+      running = false;
+      finish();
+    });
   
     setProgress("Ready");
-    initPractice();
   })();
   
-    async function initPractice() {
-      if (!window.PRACTICE_MODE) return;
-      try {
-        const res = await fetch(`/api/practice/difficulty?game=trails_switch`);
-        const data = await res.json();
-        if (data.ok) {
-          practiceLevel = data.level;
-          practiceContext = data.context;
-          if (practiceLevel === "easy") PAIRS = 4;
-          if (practiceLevel === "medium") PAIRS = 6;
-          if (practiceLevel === "hard") PAIRS = 8;
-        }
-      } catch {}
-    }

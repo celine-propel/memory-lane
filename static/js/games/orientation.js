@@ -210,21 +210,9 @@
     const deviceTotal = questions.filter(q => q.type === "device").length;
     const totalScore = deviceScore + customScore;
     const totalTotal = deviceTotal + customTotal;
+    const scorePercentage = Math.round((totalScore / totalTotal) * 100);
 
-    metaEl.textContent = `Score: ${totalScore} / ${totalTotal}`;
-
-    const details = {
-      SATURN_SCORE_ORIENTATION_MONTH: deviceCorrect.month || 0,
-      SATURN_SCORE_ORIENTATION_YEAR: deviceCorrect.year || 0,
-      SATURN_SCORE_ORIENTATION_DAY_OF_WEEK: deviceCorrect.day || 0,
-      SATURN_SCORE_ORIENTATION_DATE: deviceCorrect.date || 0,
-      SATURN_TIME_ORIENTATION_MONTH_ms: deviceTimes.month || null,
-      SATURN_TIME_ORIENTATION_YEAR_ms: deviceTimes.year || null,
-      SATURN_TIME_ORIENTATION_DAY_OF_WEEK_ms: deviceTimes.day || null,
-      SATURN_TIME_ORIENTATION_DATE_ms: deviceTimes.date || null,
-      custom_score: customScore,
-      custom_total: customTotal
-    };
+    metaEl.textContent = `Score: ${scorePercentage}%`;
 
     fetch("/api/score", {
       method: "POST",

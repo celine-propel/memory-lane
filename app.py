@@ -85,16 +85,17 @@ def extract_json_object(text: str):
 
 def add_dates_to_schedule(schedule_data, days):
     """
-    Ensure schedule has start_date, num_days, and day.date fields.
+    Force schedule to start today and have sequential day.date fields.
     """
     from datetime import date, timedelta
 
     today = date.today()
-    if "start_date" not in schedule_data:
-        schedule_data["start_date"] = today.isoformat()
+
+    # Force start_date and num_days
+    schedule_data["start_date"] = today.isoformat()
     schedule_data["num_days"] = int(days)
 
-    # Ensure days exist
+    # Ensure days list
     if "days" not in schedule_data or not isinstance(schedule_data["days"], list):
         schedule_data["days"] = []
 
@@ -107,13 +108,18 @@ def add_dates_to_schedule(schedule_data, days):
             "games": []
         })
 
-    # Add date for each day
-    for i, d in enumerate(schedule_data["days"]):
+    # FORCE date for each day (override whatever the model returned)
+    for i in range(days):
+        d = schedule_data["days"][i]
         if not isinstance(d, dict):
-            schedule_data["days"][i] = {"focus": "Training", "description": "", "games": []}
-            d = schedule_data["days"][i]
-        if "date" not in d:
-            d["date"] = (today + timedelta(days=i)).isoformat()
+            d = {"focus": "Training", "description": "", "games": []}
+            schedule_data["days"][i] = d
+
+        d["date"] = (today + timedelta(days=i)).isoformat()
+
+        # Ensure games exists
+        if "games" not in d or not isinstance(d["games"], list):
+            d["games"] = []
 
     return schedule_data
 
@@ -274,6 +280,40 @@ def select_bandit_action(user_id, game, context):
 
     best = max(actions, key=lambda a: stats.get(a, {"value": 0}).get("value", 0))
     return best, epsilon, stats
+
+def mark_schedule_game_completed(user_id: int, game_id: str):
+    """Mark today's instance of game_id as completed in the latest schedule."""
+    latest = get_latest_schedule(user_id)
+    if not latest:
+        return
+
+    try:
+        schedule_data = json.loads(latest["schedule_data"])
+    except:
+        return
+
+    today = date.today().isoformat()
+
+    changed = False
+    for day in schedule_data.get("days", []):
+        if day.get("date") != today:
+            continue
+
+        for g in day.get("games", []):
+            if g.get("id") == game_id:
+                if not g.get("completed"):
+                    g["completed"] = True
+                    g["completed_at"] = datetime.utcnow().isoformat()
+                    changed = True
+
+    if changed:
+        # Save as newest schedule snapshot (your app reads "latest" anyway)
+        save_schedule(
+            user_id,
+            json.dumps(schedule_data),
+            int(schedule_data.get("num_days", len(schedule_data.get("days", [])) or 7)),
+            datetime.utcnow().isoformat()
+        )
 
 
 @app.route("/")
@@ -486,7 +526,7 @@ def tests():
     # Only one Stroop test here
     games = [
         {"id": "stroop",
-            "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
+            "name": "Stroop Color Test", "domain": "Executive Function", "minutes": 1},
         {"id": "recall", "name": "Five-Word Recall",
             "domain": "Memory", "minutes": 2},
         {"id": "orientation", "name": "Orientation Quickcheck",
@@ -583,20 +623,41 @@ def practice_orientation():
     return render_template("game_orientation.html", user=current_user(), subtitle="Orientation Practice")
 
 
+from datetime import date
+
 @app.route("/practice")
 @login_required
 def practice():
+    user = current_user()
+
     games = [
-        {"id": "stroop", "name": "Stroop Practice",
-            "domain": "Executive Function", "minutes": 2},
-        {"id": "typing", "name": "Typing Speed",
-            "domain": "Attention", "minutes": 2},
-        {"id": "visual_puzzle", "name": "Visual Puzzle",
-            "domain": "Visualization", "minutes": 2},
-        {"id": "trails", "name": "Trails",
-            "domain": "Pattern Identification", "minutes": 2}
+        {"id": "stroop", "name": "Stroop Practice", "domain": "Executive Function", "minutes": 2},
+        {"id": "typing", "name": "Typing Speed", "domain": "Attention", "minutes": 2},
+        {"id": "visual_puzzle", "name": "Visual Puzzle", "domain": "Visualization", "minutes": 2},
+        {"id": "trails", "name": "Trails", "domain": "Pattern Identification", "minutes": 2}
     ]
-    return render_template("practice.html", games=games, user=current_user(), subtitle="Personalized training")
+
+    todays_tasks = []
+    latest = get_latest_schedule(user["id"])
+    if latest:
+        try:
+            sched = json.loads(latest["schedule_data"])
+            today = date.today().isoformat()
+            for d in sched.get("days", []):
+                if d.get("date") == today:
+                    todays_tasks = d.get("games", []) or []
+                    break
+        except:
+            todays_tasks = []
+
+    return render_template(
+        "practice.html",
+        games=games,
+        todays_tasks=todays_tasks,
+        user=user,
+        subtitle="Personalized training"
+    )
+
 
 
 @app.route("/dashboard")
@@ -606,103 +667,21 @@ def dashboard():
     if not user:
         session.pop("user_id", None)
         return redirect(url_for("login"))
-    user = dict(user)
-    raw_scores = get_scores(user["id"], limit=30)
-    scores = []
-    for s in raw_scores:
-        row = dict(s)
-        if row.get("details"):
-            try:
-                row["details"] = json.loads(row["details"])
-            except Exception:
-                row["details"] = {}
-        game = (row.get("game") or "").lower()
-        max_score = None
-        display_subvalue = None
-        display_unit = "pts"
-        if game == "stroop":
-            max_score = 3
-            mean_ms = (row.get("details") or {}).get("SATURN_TIME_STROOP_MEAN_ms")
-            if mean_ms is not None:
-                display_subvalue = f"{mean_ms} ms"
-        elif game == "recall":
-            max_score = 5
-            recall_ms = (row.get("details") or {}).get("SATURN_TIME_RECALL_FIVEWORDS_ms")
-            if recall_ms is not None:
-                display_subvalue = f"{recall_ms} ms"
-        elif game == "orientation":
-            custom_total = (row.get("details") or {}).get("custom_total")
-            max_score = 4 + (custom_total or 0)
-            details = row.get("details") or {}
-            timing_keys = [
-                "SATURN_TIME_ORIENTATION_MONTH_ms",
-                "SATURN_TIME_ORIENTATION_YEAR_ms",
-                "SATURN_TIME_ORIENTATION_DAY_OF_WEEK_ms",
-                "SATURN_TIME_ORIENTATION_DATE_ms",
-            ]
-            times = [details.get(k) for k in timing_keys if details.get(k) is not None]
-            if times:
-                avg_ms = round(sum(times) / len(times))
-                display_subvalue = f"{avg_ms} ms avg"
-        elif game == "trails_switch":
-            max_score = 1
-        elif game == "visual_puzzle":
-            max_score = 3
-        elif game == "tapping":
-            display_unit = "ms/tap"
-        if max_score is not None:
-            row["display_value"] = f"{row['value']:.0f} / {max_score}"
-        if display_subvalue is not None:
-            row["display_subvalue"] = display_subvalue
-        row["display_unit"] = display_unit
-        scores.append(row)
+    scores = get_scores(user["id"], limit=30)
     latest_by_domain = {}
+    
+    # Group the absolute latest score for each unique domain
     for s in scores:
         if s["domain"] not in latest_by_domain:
             latest_by_domain[s["domain"]] = s
-
-    prediction = None
-    model = load_ml_model()
-    features = build_feature_row(user, scores)
-    if model is not None and features is not None:
-        try:
-            proba = None
-            if hasattr(model, "predict_proba"):
-                proba = float(model.predict_proba(features)[0][1])
-            pred = int(model.predict(features)[0])
-            color = "indigo"
-            if proba is not None:
-                if proba < 0.33:
-                    color = "emerald"
-                elif proba < 0.66:
-                    color = "amber"
-                else:
-                    color = "rose"
-            prediction = {
-                "label": "abnormal" if pred == 1 else "normal",
-                "probability": proba,
-                "color": color
-            }
-        except Exception:
-            prediction = None
-
-    difficulty_levels = {}
-    for game_id in ["stroop", "recall", "orientation", "tapping", "trails_switch", "visual_puzzle"]:
-        recent = get_scores_by_game(user["id"], game_id, limit=5)
-        context = compute_context_bucket(game_id, recent)
-        action, _, _ = select_bandit_action(user["id"], game_id, context)
-        difficulty_levels[game_id] = action
 
     return render_template(
         "dashboard.html",
         user=user,
         scores=scores,
         latest_by_domain=latest_by_domain,
-        prediction=prediction,
-        difficulty_levels=difficulty_levels,
         subtitle="Your results"
     )
-
 
 @app.post("/api/score")
 @login_required
@@ -714,44 +693,7 @@ def api_score():
                          ) if payload.get("details") else None
     add_score(user["id"], payload.get("game"), payload.get(
         "domain"), payload.get("value"), datetime.utcnow().isoformat(), details)
-
-    # Optional: bandit update for practice sessions
-    action = payload.get("practice_action")
-    context = payload.get("practice_context")
-    if action and context:
-        game = payload.get("game")
-        recent = get_scores_by_game(user["id"], game, limit=2)
-        reward = 0.0
-        if len(recent) >= 2:
-            current = float(recent[0]["value"])
-            prev = float(recent[1]["value"])
-            delta = current - prev
-            if not game_higher_better(game):
-                delta = -delta
-            reward = 1.0 if delta > 0 else (-1.0 if delta < 0 else 0.0)
-        update_bandit_state(
-            user["id"], game, context, action, reward, datetime.utcnow().isoformat()
-        )
     return jsonify({"ok": True})
-
-
-@app.get("/api/practice/difficulty")
-@login_required
-def api_practice_difficulty():
-    user = current_user()
-    game = (request.args.get("game") or "").strip()
-    if not game:
-        return jsonify({"ok": False, "error": "missing game"}), 400
-    recent = get_scores_by_game(user["id"], game, limit=5)
-    context = compute_context_bucket(game, recent)
-    action, epsilon, stats = select_bandit_action(user["id"], game, context)
-    return jsonify({
-        "ok": True,
-        "level": action,
-        "context": context,
-        "epsilon": epsilon,
-        "stats": stats
-    })
 
 
 @app.get("/api/typing-text")
@@ -793,13 +735,10 @@ def get_typing_text():
             "length": len(text)
         })
 
-
 @app.get("/api/recall-words")
 @login_required
 def get_recall_words():
     """Generate 5 random words for recall game."""
-    count = int(request.args.get("count", 5))
-    count = max(3, min(8, count))
     try:
         # Use Ollama to generate words via local LLM
         response = ollama.generate(
@@ -809,11 +748,10 @@ def get_recall_words():
         )
 
         words_str = response['response'].strip()
-        words = [w.strip().lower() for w in words_str.split(',')]
-        words = words[:count]
+        words = [w.strip().lower() for w in words_str.split(',')][:5]
 
         # Fallback if we don't get exactly 5 words
-        if len(words) < count:
+        if len(words) < 5:
             import random
             fallback_words = [
                 ["elephant", "crystal", "mountain", "piano", "harbor"],
@@ -822,27 +760,19 @@ def get_recall_words():
                 ["island", "symphony", "pearl", "venture", "wisdom"],
                 ["bridge", "twilight", "emerald", "rhythm", "horizon"],
             ]
-            words = random.choice(fallback_words)[:count]
+            words = random.choice(fallback_words)
 
         return jsonify({
-            "words": words[:count]
+            "words": words[:5]
         })
+
     except Exception as e:
         print(f"LLM Error: {e}")
-        # Fallback words if LLM is unavailable
-        import random
-        fallback_words = [
-            ["elephant", "crystal", "mountain", "piano", "harbor"],
-            ["garden", "thunder", "silver", "whisper", "anchor"],
-            ["canvas", "forest", "marble", "silence", "beacon"],
-            ["island", "symphony", "pearl", "venture", "wisdom"],
-            ["bridge", "twilight", "emerald", "rhythm", "horizon"],
-        ]
-        words = random.choice(fallback_words)
+        # Fallback words if LLM is unavailable entirely
+        selected_set = random.choice(fallback_sets)
         return jsonify({
-            "words": words
+            "words": selected_set[:5] # Ensure only 5 words from your expanded list are sent
         })
-
 
 @app.route("/schedule")
 @login_required

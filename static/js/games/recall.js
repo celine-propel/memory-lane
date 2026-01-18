@@ -182,11 +182,12 @@
   function submitRecall() {
     if (phase !== "recall") return;
     const score = computeScore();
+    const scorePercentage = Math.round((score / 5) * 100);
     const elapsed = Math.round(performance.now() - recallStart);
 
     phase = "done";
     setStage("Done");
-    metaEl.textContent = `Score: ${score} / 5`;
+    metaEl.textContent = `Score: ${scorePercentage}%`;
     statusEl.textContent = "Saving to your dashboard...";
     submitBtn.disabled = true;
 
@@ -196,6 +197,7 @@
       body: JSON.stringify({
         game: "recall",
         domain: "Memory",
+<<<<<<< HEAD
         value: score,
         practice_action: window.PRACTICE_MODE ? practiceLevel : null,
         practice_context: window.PRACTICE_MODE ? practiceContext : null,
@@ -203,6 +205,10 @@
           SATURN_SCORE_RECALL_FIVEWORDS: score,
           SATURN_TIME_RECALL_FIVEWORDS_ms: elapsed
         }
+=======
+        value: scorePercentage,
+        recall_ms: elapsed,
+>>>>>>> fff6a1786c425279939b79507401594cac8386fb
       }),
     })
       .then(() => {
@@ -227,6 +233,11 @@
   submitBtn.addEventListener("click", submitRecall);
 
   inputWrap.style.display = "none";
+<<<<<<< HEAD
   showWords(false);
   initPractice().then(fetchWords);
 })();
+=======
+  showWords(true);
+})();
+>>>>>>> fff6a1786c425279939b79507401594cac8386fb
