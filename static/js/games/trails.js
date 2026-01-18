@@ -220,31 +220,28 @@
         ? Math.round(stepTimes.reduce((a, b) => a + b, 0) / stepTimes.length)
         : 0;
   
-      // Simple 0..3 score (tune later)
-      // More weight on completion + errors + speed
-      let score = 0;
       const completionRate = totalSteps ? (completed / totalSteps) : 0;
-  
-      if (completionRate >= 0.95 && errors <= 2) score = 3;
-      else if (completionRate >= 0.75) score = 2;
-      else if (completionRate >= 0.45) score = 1;
-  
-      setProgress(`Score: ${score} / 3`);
+      const mocaTrailsB = completionRate >= 1 ? 1 : 0;
+
+      setProgress(`Score: ${mocaTrailsB} / 1`);
       setStatus("Saving to your dashboard...");
-  
+
       fetch("/api/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           game: "trails_switch",
           domain: "Executive Function",
-          value: score,
-          elapsed_ms: elapsed,
-          errors,
-          completed_steps: completed,
-          total_steps: totalSteps,
-          mean_step_ms: meanStep,
-          step_ms: stepTimes
+          value: mocaTrailsB,
+          details: {
+            MoCA_1_SCORE_trailsB: mocaTrailsB,
+            elapsed_ms: elapsed,
+            errors,
+            completed_steps: completed,
+            total_steps: totalSteps,
+            mean_step_ms: meanStep,
+            step_ms: stepTimes
+          }
         })
       }).then(() => {
         setStatus("Saved. Redirecting to dashboard...");

@@ -5,6 +5,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import ollama
 import json
 import re
+from pathlib import Path
+
+try:
+    import joblib
+    import pandas as pd
+except Exception:
+    joblib = None
+    pd = None
 
 from db import (
     init_db, create_user, get_user_by_email, get_user_by_id,
@@ -107,6 +115,116 @@ def add_dates_to_schedule(schedule_data, days):
             d["date"] = (today + timedelta(days=i)).isoformat()
 
     return schedule_data
+
+
+_MODEL_CACHE = {"model": None}
+
+
+def load_ml_model():
+    if not joblib:
+        return None
+    if _MODEL_CACHE["model"] is not None:
+        return _MODEL_CACHE["model"]
+    model_path = Path(__file__).parent / "ml-models" / "best_model.joblib"
+    if not model_path.exists():
+        return None
+    _MODEL_CACHE["model"] = joblib.load(model_path)
+    return _MODEL_CACHE["model"]
+
+
+def map_gender_to_legal_sex(gender):
+    if not gender:
+        return None
+    g = str(gender).strip().lower()
+    if g.startswith("m"):
+        return "M"
+    if g.startswith("f"):
+        return "W"
+    return None
+
+
+def extract_latest_by_game(scores):
+    latest = {}
+    for s in scores:
+        game = s.get("game")
+        if game and game not in latest:
+            latest[game] = s
+    return latest
+
+
+def build_feature_row(user, scores):
+    if not pd:
+        return None
+
+    latest = extract_latest_by_game(scores)
+
+    def get_detail(game_id, key):
+        details = (latest.get(game_id) or {}).get("details") or {}
+        return details.get(key)
+
+    # General demographics
+    age = user["age"] if user and user.get("age") not in ("", None) else None
+    legal_sex = map_gender_to_legal_sex(user.get("gender") if user else None)
+    race_eth = user.get("ethnicity") if user else None
+
+    # Orientation score proxy (sum device items)
+    orient_device_score = 0
+    orient_keys = [
+        "SATURN_SCORE_ORIENTATION_MONTH",
+        "SATURN_SCORE_ORIENTATION_YEAR",
+        "SATURN_SCORE_ORIENTATION_DAY_OF_WEEK",
+        "SATURN_SCORE_ORIENTATION_DATE",
+    ]
+    for k in orient_keys:
+        val = get_detail("orientation", k)
+        if isinstance(val, (int, float)):
+            orient_device_score += int(val)
+
+    feature_cols = [
+        "AGE",
+        "AUTO_LEGAL_SEX",
+        "RACE_ETHNICITY",
+        "YR_EDU_num",
+        "SATURN_SCORE_STROOP_POINTS",
+        "SATURN_TIME_STROOP_ERRORS",
+        "SATURN_TIME_STROOP_MEAN_ms",
+        "MoCA_1_SCORE_orientation",
+        "SATURN_SCORE_ORIENTATION_MONTH",
+        "SATURN_SCORE_ORIENTATION_YEAR",
+        "SATURN_SCORE_ORIENTATION_DAY_OF_WEEK",
+        "SATURN_SCORE_ORIENTATION_STATE",
+        "SATURN_SCORE_RECALL_FIVEWORDS",
+        "SATURN_TIME_RECALL_FIVEWORDS_ms",
+        "MoCA_1_SCORE_recall",
+        "SATURN_MOTOR_SPEED_ms_per_button",
+        "MoCA_1_SCORE_fluency",
+    ]
+
+    data = {
+        "AGE": age,
+        "AUTO_LEGAL_SEX": legal_sex,
+        "RACE_ETHNICITY": race_eth,
+        "YR_EDU_num": None,
+        "SATURN_SCORE_STROOP_POINTS": get_detail("stroop", "SATURN_SCORE_STROOP_POINTS"),
+        "SATURN_TIME_STROOP_ERRORS": get_detail("stroop", "SATURN_TIME_STROOP_ERRORS"),
+        "SATURN_TIME_STROOP_MEAN_ms": get_detail("stroop", "SATURN_TIME_STROOP_MEAN_ms"),
+        "MoCA_1_SCORE_orientation": orient_device_score if orient_device_score > 0 else None,
+        "SATURN_SCORE_ORIENTATION_MONTH": get_detail("orientation", "SATURN_SCORE_ORIENTATION_MONTH"),
+        "SATURN_SCORE_ORIENTATION_YEAR": get_detail("orientation", "SATURN_SCORE_ORIENTATION_YEAR"),
+        "SATURN_SCORE_ORIENTATION_DAY_OF_WEEK": get_detail("orientation", "SATURN_SCORE_ORIENTATION_DAY_OF_WEEK"),
+        "SATURN_SCORE_ORIENTATION_STATE": get_detail("orientation", "SATURN_SCORE_ORIENTATION_STATE"),
+        "SATURN_SCORE_RECALL_FIVEWORDS": get_detail("recall", "SATURN_SCORE_RECALL_FIVEWORDS"),
+        "SATURN_TIME_RECALL_FIVEWORDS_ms": get_detail("recall", "SATURN_TIME_RECALL_FIVEWORDS_ms"),
+        "MoCA_1_SCORE_recall": get_detail("recall", "SATURN_SCORE_RECALL_FIVEWORDS"),
+        "SATURN_MOTOR_SPEED_ms_per_button": get_detail("tapping", "SATURN_MOTOR_SPEED_ms_per_button"),
+        "MoCA_1_SCORE_fluency": None,
+    }
+
+    # Add missingness indicators
+    for col in feature_cols:
+        data[f"{col}_missing"] = 1 if data.get(col) is None else 0
+
+    return pd.DataFrame([data])
 
 
 @app.route("/")
@@ -433,17 +551,92 @@ def dashboard():
     if not user:
         session.pop("user_id", None)
         return redirect(url_for("login"))
-    scores = get_scores(user["id"], limit=30)
+    user = dict(user)
+    raw_scores = get_scores(user["id"], limit=30)
+    scores = []
+    for s in raw_scores:
+        row = dict(s)
+        if row.get("details"):
+            try:
+                row["details"] = json.loads(row["details"])
+            except Exception:
+                row["details"] = {}
+        game = (row.get("game") or "").lower()
+        max_score = None
+        display_subvalue = None
+        display_unit = "pts"
+        if game == "stroop":
+            max_score = 3
+            mean_ms = (row.get("details") or {}).get("SATURN_TIME_STROOP_MEAN_ms")
+            if mean_ms is not None:
+                display_subvalue = f"{mean_ms} ms"
+        elif game == "recall":
+            max_score = 5
+            recall_ms = (row.get("details") or {}).get("SATURN_TIME_RECALL_FIVEWORDS_ms")
+            if recall_ms is not None:
+                display_subvalue = f"{recall_ms} ms"
+        elif game == "orientation":
+            custom_total = (row.get("details") or {}).get("custom_total")
+            max_score = 4 + (custom_total or 0)
+            details = row.get("details") or {}
+            timing_keys = [
+                "SATURN_TIME_ORIENTATION_MONTH_ms",
+                "SATURN_TIME_ORIENTATION_YEAR_ms",
+                "SATURN_TIME_ORIENTATION_DAY_OF_WEEK_ms",
+                "SATURN_TIME_ORIENTATION_DATE_ms",
+            ]
+            times = [details.get(k) for k in timing_keys if details.get(k) is not None]
+            if times:
+                avg_ms = round(sum(times) / len(times))
+                display_subvalue = f"{avg_ms} ms avg"
+        elif game == "trails_switch":
+            max_score = 1
+        elif game == "visual_puzzle":
+            max_score = 3
+        elif game == "tapping":
+            display_unit = "ms/tap"
+        if max_score is not None:
+            row["display_value"] = f"{row['value']:.0f} / {max_score}"
+        if display_subvalue is not None:
+            row["display_subvalue"] = display_subvalue
+        row["display_unit"] = display_unit
+        scores.append(row)
     latest_by_domain = {}
     for s in scores:
         if s["domain"] not in latest_by_domain:
             latest_by_domain[s["domain"]] = s
+
+    prediction = None
+    model = load_ml_model()
+    features = build_feature_row(user, scores)
+    if model is not None and features is not None:
+        try:
+            proba = None
+            if hasattr(model, "predict_proba"):
+                proba = float(model.predict_proba(features)[0][1])
+            pred = int(model.predict(features)[0])
+            color = "indigo"
+            if proba is not None:
+                if proba < 0.33:
+                    color = "emerald"
+                elif proba < 0.66:
+                    color = "amber"
+                else:
+                    color = "rose"
+            prediction = {
+                "label": "abnormal" if pred == 1 else "normal",
+                "probability": proba,
+                "color": color
+            }
+        except Exception:
+            prediction = None
 
     return render_template(
         "dashboard.html",
         user=user,
         scores=scores,
         latest_by_domain=latest_by_domain,
+        prediction=prediction,
         subtitle="Your results"
     )
 

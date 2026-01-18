@@ -1,2 +1,6 @@
 flask
 ollama
+joblib
+numpy
+pandas
+scikit-learn

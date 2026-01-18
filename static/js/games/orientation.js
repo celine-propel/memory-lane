@@ -33,6 +33,8 @@
   let questions = [];
   let index = 0;
   let deviceScore = 0;
+  let deviceCorrect = {};
+  let deviceTimes = {};
   let timings = [];
   let questionStart = 0;
   let customAnswers = [];
@@ -104,6 +106,8 @@
     // If user has zero custom questions, this still works (device-only).
     index = 0;
     deviceScore = 0;
+    deviceCorrect = {};
+    deviceTimes = {};
     timings = [];
     customAnswers = [];
 
@@ -152,10 +156,14 @@
     if (q.type === "device") {
       // recompute device truth each question (handles midnight rollover)
       const truth = deviceTruth();
-      if (q.key === "month" && answer === truth.month) deviceScore += 1;
-      if (q.key === "day" && answer === truth.day) deviceScore += 1;
-      if (q.key === "year" && digitsOnly(answer) === String(truth.year)) deviceScore += 1;
-      if (q.key === "date" && isCorrectDate(answer, truth.date)) deviceScore += 1;
+      let correct = 0;
+      if (q.key === "month" && answer === truth.month) correct = 1;
+      if (q.key === "day" && answer === truth.day) correct = 1;
+      if (q.key === "year" && digitsOnly(answer) === String(truth.year)) correct = 1;
+      if (q.key === "date" && isCorrectDate(answer, truth.date)) correct = 1;
+      if (correct) deviceScore += 1;
+      deviceCorrect[q.key] = correct;
+      deviceTimes[q.key] = elapsed;
     } else {
       customAnswers.push({ key: q.key, answer });
     }
@@ -190,6 +198,19 @@
 
     metaEl.textContent = `Score: ${totalScore} / ${totalTotal}`;
 
+    const details = {
+      SATURN_SCORE_ORIENTATION_MONTH: deviceCorrect.month || 0,
+      SATURN_SCORE_ORIENTATION_YEAR: deviceCorrect.year || 0,
+      SATURN_SCORE_ORIENTATION_DAY_OF_WEEK: deviceCorrect.day || 0,
+      SATURN_SCORE_ORIENTATION_DATE: deviceCorrect.date || 0,
+      SATURN_TIME_ORIENTATION_MONTH_ms: deviceTimes.month || null,
+      SATURN_TIME_ORIENTATION_YEAR_ms: deviceTimes.year || null,
+      SATURN_TIME_ORIENTATION_DAY_OF_WEEK_ms: deviceTimes.day || null,
+      SATURN_TIME_ORIENTATION_DATE_ms: deviceTimes.date || null,
+      custom_score: customScore,
+      custom_total: customTotal
+    };
+
     fetch("/api/score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -197,12 +218,7 @@
         game: "orientation",
         domain: "Orientation",
         value: totalScore,
-        details: {
-          max: totalTotal,
-          deviceScore,
-          customScore,
-          timings
-        }
+        details
       }),
     })
       .then(() => {

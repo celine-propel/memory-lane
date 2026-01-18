@@ -70,10 +70,9 @@
     const total = times.reduce((a, b) => a + b, 0);
     const meanMs = times.length ? Math.round(total / times.length) : 0;
     const score = Math.max(0, 3 - errors);
-    const scorePercentage = Math.round((correctOnFirstTry / TRIALS) * 100);
     wordEl.textContent = "DONE";
     wordEl.style.color = "#0f172a";
-    progressEl.textContent = `Score: ${scorePercentage}%`; // Show as percentage
+    progressEl.textContent = `Score: ${score} / 3`;
     metaEl.textContent = `Mean RT: ${meanMs} ms`;
     statusEl.textContent = "Saving to your dashboard...";
 
@@ -83,9 +82,14 @@
       body: JSON.stringify({
         game: "stroop",
         domain: "Executive Function",
-        value: scorePercentage,
-        errors,
-        mean_ms: meanMs
+        value: score,
+        details: {
+          SATURN_SCORE_STROOP_POINTS: score,
+          SATURN_TIME_STROOP_ERRORS: errors,
+          SATURN_TIME_STROOP_MEAN_ms: meanMs,
+          correct_first_try: correctOnFirstTry,
+          total_trials: TRIALS
+        }
       })
     }).then(() => {
       statusEl.textContent = "Saved. Redirecting to dashboard...";

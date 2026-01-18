@@ -6,6 +6,36 @@
     <p class="text-indigo-200/60 text-sm mt-1 border-l-2 border-indigo-500 pl-3">Tracking cognitive trends and signals over time.</p>
   </div>
 
+  {% if prediction %}
+  <div class="mb-8 p-5 backdrop-blur-md rounded-[1.5rem] border border-white/10"
+       style="
+         background-color:
+           {% if prediction.color == 'emerald' %}rgba(16,185,129,0.25)
+           {% elif prediction.color == 'amber' %}rgba(245,158,11,0.25)
+           {% elif prediction.color == 'rose' %}rgba(244,63,94,0.25)
+           {% else %}rgba(99,102,241,0.25)
+           {% endif %};
+       ">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <div class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Model Prediction</div>
+        <div class="text-lg font-black text-white mt-1">{{ prediction.label|capitalize }}</div>
+        {% if prediction.label == "abnormal" %}
+        <div class="text-xs text-indigo-200/70 mt-2">
+          This indicates elevated risk. Consider contacting a healthcare professional for clinical guidance.
+        </div>
+        {% endif %}
+      </div>
+      {% if prediction.probability is not none %}
+      <div class="text-right">
+        <div class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Confidence</div>
+        <div class="text-lg font-black text-white mt-1">{{ (prediction.probability * 100) | round(1) }}%</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   <section class="mb-10">
     <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-4">Latest by Domain</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -26,9 +56,12 @@
 
               <div class="flex items-baseline gap-2 mb-6">
                 <span class="text-7xl font-black text-white tracking-tighter">
-                    {{ "%.1f"|format(s.value) }}
+                    {{ s.display_value if s.display_value else "%.1f"|format(s.value) }}
                 </span>
-                <span class="text-indigo-300/60 text-sm font-bold uppercase tracking-widest">pts</span>
+                <span class="text-indigo-300/60 text-sm font-bold uppercase tracking-widest">{{ s.display_unit if s.display_unit else "pts" }}</span>
+                {% if s.display_subvalue %}
+                  <span class="text-indigo-200/60 text-sm font-bold uppercase tracking-widest">| {{ s.display_subvalue }}</span>
+                {% endif %}
               </div>
 
               <div class="flex items-center justify-between pt-6 border-t border-indigo-400/20">
@@ -36,7 +69,6 @@
                   {{ s.game }}
                 </span>
                 <span class="text-xs text-slate-400 font-bold uppercase tracking-tighter opacity-70">
-                  <pre>{{ scores[0] }}</pre>
                   {{ s['created_at'].split('T')[0] if s['created_at'] else 'No Date' }}
                 </span>
               </div>
@@ -52,9 +84,12 @@
 
             <div class="flex items-baseline gap-1">
               <span class="text-5xl font-black text-white tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-indigo-300">
-                  {{ "%.2f"|format(s.value) }}
+                  {{ s.display_value if s.display_value else "%.2f"|format(s.value) }}
               </span>
-              <span class="text-indigo-300/40 text-xs font-bold uppercase tracking-widest">pts</span>
+              <span class="text-indigo-300/40 text-xs font-bold uppercase tracking-widest">{{ s.display_unit if s.display_unit else "pts" }}</span>
+              {% if s.display_subvalue %}
+                <span class="text-indigo-200/50 text-[10px] font-bold uppercase tracking-widest ml-2">{{ s.display_subvalue }}</span>
+              {% endif %}
             </div>
 
             <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
@@ -89,7 +124,7 @@
               <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{{ s.domain }} • {{ s.created_at.split('T')[0] }}</span>
             </div>
             <div class="bg-indigo-600 text-white font-mono text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg shadow-indigo-900/40 border border-indigo-400/30">
-              {{ "%.2f"|format(s.value) }}
+              {{ s.display_value if s.display_value else "%.2f"|format(s.value) }} {{ s.display_unit if s.display_unit else "pts" }}
             </div>
           </div>
         {% endfor %}

@@ -56,14 +56,20 @@
     timerEl.textContent = `Finished: ${DURATION_SECONDS}s`;
     statusEl.textContent = "Saving to your dashboard...";
 
+    const msPerButton = taps > 0 ? Math.round((DURATION_SECONDS * 1000) / taps) : null;
+
     fetch("/api/score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         game: "tapping",
         domain: "Attention",
-        value: taps,
-        duration_s: DURATION_SECONDS
+        value: msPerButton ?? 0,
+        details: {
+          SATURN_MOTOR_SPEED_ms_per_button: msPerButton,
+          taps,
+          duration_s: DURATION_SECONDS
+        }
       })
     }).then(() => {
       statusEl.textContent = "Saved. Redirecting to dashboard...";

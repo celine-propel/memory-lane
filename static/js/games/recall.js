@@ -171,7 +171,10 @@
         game: "recall",
         domain: "Memory",
         value: score,
-        recall_ms: elapsed,
+        details: {
+          SATURN_SCORE_RECALL_FIVEWORDS: score,
+          SATURN_TIME_RECALL_FIVEWORDS_ms: elapsed
+        }
       }),
     })
       .then(() => {
