@@ -8,7 +8,10 @@ import re
 
 from db import (
     init_db, create_user, get_user_by_email, get_user_by_id,
-    add_score, get_scores, save_schedule, get_latest_schedule
+    add_score, get_scores, save_schedule, get_latest_schedule,
+    update_user_profile,
+    add_orientation_question, get_orientation_questions,
+    deactivate_orientation_question, get_orientation_questions_by_ids
 )
 
 app = Flask(__name__)
@@ -153,6 +156,14 @@ def register():
         
         user = get_user_by_email(email)
         session["user_id"] = user["id"]
+
+        # Optional: save up to 3 orientation questions from registration
+        for i in (1, 2, 3):
+            p = request.form.get(f"oq_prompt_{i}", "").strip()
+            a = request.form.get(f"oq_answer_{i}", "").strip()
+            if p and a:
+                add_orientation_question(user["id"], p, a, datetime.utcnow().isoformat())
+
         return redirect(url_for("dashboard"))
         
     return render_template("register.html")
@@ -176,6 +187,125 @@ def logout():
     session.pop("user_id", None)
     return redirect(url_for("home"))
 
+@app.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    user = current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        # Mandatory: name
+        name = request.form.get("name", "").strip() or user["name"]
+
+        # Optional fields
+        age = request.form.get("age") or None
+        gender = request.form.get("gender") or None
+        gender_other = request.form.get("gender_other") or None
+        ethnicity = request.form.get("ethnicity") or None
+        city = request.form.get("city") or None
+        state = request.form.get("state") or None
+        country = request.form.get("country") or None
+
+        update_user_profile(
+            user["id"],
+            name=name,
+            age=age,
+            gender=gender,
+            gender_other=gender_other,
+            ethnicity=ethnicity,
+            city=city,
+            state=state,
+            country=country
+        )
+
+        user = current_user()  # refresh
+        questions = get_orientation_questions(user["id"], active_only=True)
+        return render_template("profile.html", user=user, questions=questions, msg="Profile saved.", subtitle="Profile")
+
+    questions = get_orientation_questions(user["id"], active_only=True)
+    return render_template("profile.html", user=user, questions=questions, subtitle="Profile")
+
+
+@app.post("/profile/questions/add")
+@login_required
+def profile_add_question():
+    user = current_user()
+    prompt = request.form.get("prompt", "").strip()
+    answer = request.form.get("answer", "").strip()
+
+    # Optional: only save if both exist
+    if prompt and answer:
+        add_orientation_question(user["id"], prompt, answer, datetime.utcnow().isoformat())
+
+    return redirect(url_for("profile"))
+
+
+@app.post("/profile/questions/<int:q_id>/delete")
+@login_required
+def profile_delete_question(q_id):
+    user = current_user()
+    deactivate_orientation_question(user["id"], q_id)
+    return redirect(url_for("profile"))
+
+@app.get("/api/orientation/prompts")
+@login_required
+def api_orientation_prompts():
+    user = current_user()
+
+    device = [
+        {"key": "month", "label": "What month is it?", "type": "device"},
+        {"key": "date", "label": "What is the date today?", "type": "device"},
+        {"key": "year", "label": "What year is it?", "type": "device"},
+        {"key": "day", "label": "What day of the week is it?", "type": "device"},
+    ]
+
+    custom_rows = get_orientation_questions(user["id"], active_only=True)
+    custom_rows = list(custom_rows)
+
+    import random
+    random.shuffle(custom_rows)
+
+    # pick up to 3, but allow fewer (optional feature)
+    picked = custom_rows[:3]
+    custom = [{"key": f"custom_{q['id']}", "label": q["prompt"], "type": "custom"} for q in picked]
+
+    questions = device + custom
+    random.shuffle(questions)
+
+    return jsonify({"questions": questions})
+
+
+@app.post("/api/orientation/grade_custom")
+@login_required
+def api_orientation_grade_custom():
+    user = current_user()
+    payload = request.get_json(force=True)
+
+    answers = payload.get("answers", [])  # [{key, answer}]
+    id_to_answer = {}
+
+    for a in answers:
+        k = a.get("key", "")
+        if k.startswith("custom_"):
+            try:
+                qid = int(k.split("_")[1])
+            except:
+                continue
+            id_to_answer[qid] = (a.get("answer") or "").strip().lower()
+
+    if not id_to_answer:
+        return jsonify({"customScore": 0, "customTotal": 0})
+
+    rows = get_orientation_questions_by_ids(user["id"], list(id_to_answer.keys()))
+    score = 0
+    total = len(rows)
+
+    for r in rows:
+        if id_to_answer.get(r["id"], "") == (r["answer_norm"] or ""):
+            score += 1
+
+    return jsonify({"customScore": score, "customTotal": total})
 
 @app.route("/tests")
 @login_required

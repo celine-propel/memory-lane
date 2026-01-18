@@ -32,3 +32,13 @@ CREATE TABLE IF NOT EXISTS schedule (
   created_at TEXT NOT NULL,
   FOREIGN KEY(user_id) REFERENCES user(id)
 );
+
+CREATE TABLE IF NOT EXISTS orientation_question (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  prompt TEXT NOT NULL,
+  answer_norm TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES user(id)
+);
