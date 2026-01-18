@@ -667,19 +667,109 @@ def dashboard():
     if not user:
         session.pop("user_id", None)
         return redirect(url_for("login"))
-    scores = get_scores(user["id"], limit=30)
+    user = dict(user)
+
+    raw_scores = get_scores(user["id"], limit=30)
+    scores = []
+    for s in raw_scores:
+        row = dict(s)
+        if row.get("details"):
+            try:
+                row["details"] = json.loads(row["details"])
+            except Exception:
+                row["details"] = {}
+        game = (row.get("game") or "").lower()
+        max_score = None
+        display_subvalue = None
+        display_unit = "pts"
+        if game == "stroop":
+            max_score = 3
+            mean_ms = (row.get("details") or {}).get("SATURN_TIME_STROOP_MEAN_ms")
+            if mean_ms is not None:
+                display_subvalue = f"{mean_ms} ms"
+        elif game == "recall":
+            max_score = 5
+            recall_ms = (row.get("details") or {}).get("SATURN_TIME_RECALL_FIVEWORDS_ms")
+            if recall_ms is not None:
+                display_subvalue = f"{recall_ms} ms"
+        elif game == "orientation":
+            custom_total = (row.get("details") or {}).get("custom_total")
+            max_score = 4 + (custom_total or 0)
+            details = row.get("details") or {}
+            timing_keys = [
+                "SATURN_TIME_ORIENTATION_MONTH_ms",
+                "SATURN_TIME_ORIENTATION_YEAR_ms",
+                "SATURN_TIME_ORIENTATION_DAY_OF_WEEK_ms",
+                "SATURN_TIME_ORIENTATION_DATE_ms",
+            ]
+            times = [details.get(k) for k in timing_keys if details.get(k) is not None]
+            if times:
+                avg_ms = round(sum(times) / len(times))
+                display_subvalue = f"{avg_ms} ms avg"
+        elif game == "trails_switch":
+            max_score = 1
+        elif game == "visual_puzzle":
+            max_score = 3
+        elif game == "tapping":
+            display_unit = "ms/tap"
+        if max_score is not None:
+            row["display_value"] = f"{row['value']:.0f} / {max_score}"
+        if display_subvalue is not None:
+            row["display_subvalue"] = display_subvalue
+        row["display_unit"] = display_unit
+        scores.append(row)
+
     latest_by_domain = {}
-    
-    # Group the absolute latest score for each unique domain
     for s in scores:
         if s["domain"] not in latest_by_domain:
             latest_by_domain[s["domain"]] = s
+
+    prediction = None
+    model = load_ml_model()
+    features = build_feature_row(user, scores)
+    if model is not None and features is not None:
+        try:
+            proba = None
+            if hasattr(model, "predict_proba"):
+                proba = float(model.predict_proba(features)[0][1])
+            pred = int(model.predict(features)[0])
+            color = "indigo"
+            if proba is not None:
+                if proba < 0.33:
+                    color = "emerald"
+                elif proba < 0.66:
+                    color = "amber"
+                else:
+                    color = "rose"
+            prediction = {
+                "label": "abnormal" if pred == 1 else "normal",
+                "probability": proba,
+                "color": color
+            }
+        except Exception as exc:
+            print(f"Prediction error: {exc}")
+            prediction = None
+    if prediction is None:
+        prediction = {
+            "label": "model unavailable",
+            "probability": None,
+            "color": "indigo"
+        }
+
+    difficulty_levels = {}
+    for game_id in ["stroop", "recall", "orientation", "tapping", "trails_switch", "visual_puzzle"]:
+        recent = get_scores_by_game(user["id"], game_id, limit=5)
+        context = compute_context_bucket(game_id, recent)
+        action, _, _ = select_bandit_action(user["id"], game_id, context)
+        difficulty_levels[game_id] = action
 
     return render_template(
         "dashboard.html",
         user=user,
         scores=scores,
         latest_by_domain=latest_by_domain,
+        prediction=prediction,
+        difficulty_levels=difficulty_levels,
         subtitle="Your results"
     )
 
@@ -693,6 +783,24 @@ def api_score():
                          ) if payload.get("details") else None
     add_score(user["id"], payload.get("game"), payload.get(
         "domain"), payload.get("value"), datetime.utcnow().isoformat(), details)
+
+    # Optional: bandit update for practice sessions
+    action = payload.get("practice_action")
+    context = payload.get("practice_context")
+    if action and context:
+        game = payload.get("game")
+        recent = get_scores_by_game(user["id"], game, limit=2)
+        reward = 0.0
+        if len(recent) >= 2:
+            current = float(recent[0]["value"])
+            prev = float(recent[1]["value"])
+            delta = current - prev
+            if not game_higher_better(game):
+                delta = -delta
+            reward = 1.0 if delta > 0 else (-1.0 if delta < 0 else 0.0)
+        update_bandit_state(
+            user["id"], game, context, action, reward, datetime.utcnow().isoformat()
+        )
     return jsonify({"ok": True})
 
 

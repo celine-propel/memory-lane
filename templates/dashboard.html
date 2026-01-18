@@ -28,7 +28,7 @@
       </div>
       {% if prediction.probability is not none %}
       <div class="text-right">
-        <div class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Confidence</div>
+        <div class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Risk (MCI/AD)</div>
         <div class="text-lg font-black text-white mt-1">{{ (prediction.probability * 100) | round(1) }}%</div>
       </div>
       {% endif %}
@@ -51,27 +51,6 @@
   {% endif %}
 
 <section class="mb-10">
-  <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-4">Neural Overview</h2>
-  
-  <div class="mb-8 group bg-gradient-to-br from-indigo-600/30 to-indigo-900/20 backdrop-blur-xl p-8 rounded-[2.5rem] border border-indigo-500/30 shadow-2xl relative overflow-hidden">
-    <div class="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform"></div>
-    <div class="relative z-10">
-      <div class="flex justify-between items-start mb-4">
-        <div>
-          <h3 class="text-[11px] font-black text-indigo-300 uppercase tracking-widest">Aggregate Cognitive Signal</h3>
-          <p class="text-indigo-200/60 text-xs mt-1">Average across all distinct domains</p>
-        </div>
-        <div class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(34,197,94,0.8)] animate-pulse"></div>
-      </div>
-      <div class="flex items-baseline gap-2">
-        <span class="text-7xl font-black text-white tracking-tighter">
-            {{ "%.1f"|format(overall_score) }}
-        </span>
-        <span class="text-indigo-300/60 text-sm font-bold uppercase tracking-widest">%</span>
-      </div>
-    </div>
-  </div>
-
   <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-4">Latest Domain Signals</h2>
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     {% for domain, s in latest_by_domain.items() %}
@@ -84,12 +63,6 @@
         </div>
 
         <div class="flex items-baseline gap-1">
-          <span class="text-5xl font-black text-white tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-indigo-300">
-              {{ "%.1f"|format(s.value) }}
-          </span>
-          <span class="text-indigo-300/40 text-xs font-bold uppercase tracking-widest">%</span>
-        </div>
-            <div class="flex items-baseline gap-1">
               <span class="text-5xl font-black text-white tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-indigo-300">
                   {{ s.display_value if s.display_value else "%.2f"|format(s.value) }}
               </span>
