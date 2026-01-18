@@ -38,11 +38,15 @@ const maxTrials = 10;
 let isProcessing = false;
 let responseTimer;
 let lastDetectedColor = ""; // Track last detected to prevent duplicates
+let trialStartTime = 0; // Track when trial started
+let listenEnabled = false; // Only listen after trial officially starts
 const timeLimit = 3000;
+const listenDelay = 400; // Delay before we start listening for this trial (to ignore old speech)
 
 function nextTrial() {
     clearTimeout(responseTimer);
     lastDetectedColor = ""; // Clear last detected color
+    listenEnabled = false; // Disable listening until delay passes
     trialCount++;
     if (trialCount > maxTrials) { finishGame(); return; }
 
@@ -59,6 +63,13 @@ function nextTrial() {
     wordEl.innerText = words[wordIndex];
     wordEl.style.color = colors[colorIndex];
     currentTargetColor = colorNames[colorIndex];
+
+    trialStartTime = Date.now();
+
+    // Enable listening after a small delay to avoid picking up speech from previous trial
+    setTimeout(() => {
+        listenEnabled = true;
+    }, listenDelay);
 
     responseTimer = setTimeout(() => { if (!isProcessing) handleTimeout(); }, timeLimit);
 }
@@ -87,7 +98,7 @@ if (SpeechRecognition) {
     };
 
     recognition.onresult = (event) => {
-        if (isProcessing) return; // Don't process if already handled this trial
+        if (isProcessing || !listenEnabled) return; // Don't process if already handled or listening not enabled
 
         let transcript = "";
         // Only process the LAST result, not accumulated results
@@ -107,6 +118,7 @@ if (SpeechRecognition) {
         // Only process if we detected a NEW color (not the same as last one)
         if (detectedColor !== "" && detectedColor !== lastDetectedColor) {
             lastDetectedColor = detectedColor; // Remember this color to prevent duplicates
+            listenEnabled = false; // Stop listening for this trial
             clearTimeout(responseTimer);
             isProcessing = true;
 
