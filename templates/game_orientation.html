@@ -15,6 +15,9 @@
     <div id="orientationPrompt" class="text-center text-lg font-black text-white">Loading…</div>
     <input class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-400"
            id="orientationAnswer" type="text" placeholder="Type your answer">
+    <select id="orientationSelect"
+            class="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+            style="display:none;"></select>
     <button id="orientationSubmit" type="button"
             class="px-5 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-bold hover:bg-cyan-400 transition shadow-md">
       Submit
@@ -27,4 +30,13 @@
 
 {% block scripts %}
   <script src="/static/js/games/orientation.js"></script>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+  #orientationSelect option {
+    background-color: #0f172a;
+    color: #e2e8f0;
+  }
+</style>
 {% endblock %}

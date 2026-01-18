@@ -11,7 +11,7 @@
   const startBtn = document.getElementById("recallStart");
   const actionsEl = document.getElementById("recallActions");
   const inputWrap = document.getElementById("recallInput");
-  const answerField = document.getElementById("recallAnswer");
+  const inputsEl = document.getElementById("recallInputs");
   const submitBtn = document.getElementById("recallSubmit");
 
   if (!stageEl) return;
@@ -27,6 +27,9 @@
     .then((data) => {
       WORDS = data.words;
       renderWords();
+      if (phase === "study") {
+        showWords(true);
+      }
     })
     .catch((err) => {
       console.error("Failed to load words:", err);
@@ -46,6 +49,27 @@
         wordsEl.appendChild(wordDiv);
       });
     }
+    renderInputs();
+  }
+
+  function renderInputs() {
+    if (!inputsEl) return;
+    inputsEl.innerHTML = "";
+    WORDS.forEach((_, index) => {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className =
+        "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-400";
+      input.placeholder = `Word ${index + 1}`;
+      input.dataset.index = String(index);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          submitRecall();
+        }
+      });
+      inputsEl.appendChild(input);
+    });
   }
 
   function setStage(label) {
@@ -64,6 +88,9 @@
     phase = "study";
     setStage("Study");
     statusEl.textContent = "Memorize the words.";
+    if (wordsEl && !wordsEl.children.length) {
+      renderWords();
+    }
     showWords(true);
     let remaining = STUDY_SECONDS;
     setTimer(`Study time: ${remaining}s`);
@@ -104,14 +131,20 @@
     actionsEl.style.display = "none";
     inputWrap.style.display = "grid";
     inputWrap.setAttribute("aria-hidden", "false");
-    answerField.value = "";
-    answerField.focus();
+    const firstInput = inputsEl?.querySelector("input");
+    if (firstInput) {
+      inputsEl.querySelectorAll("input").forEach((el) => {
+        el.value = "";
+      });
+      firstInput.focus();
+    }
     recallStart = performance.now();
   }
 
   function computeScore() {
-    const raw = answerField.value.toLowerCase();
-    const tokens = raw.split(/[^a-z]+/).filter(Boolean);
+    const tokens = Array.from(inputsEl?.querySelectorAll("input") || [])
+      .map((input) => input.value.toLowerCase().trim())
+      .filter(Boolean);
     const unique = new Set(tokens);
     let correct = 0;
     WORDS.forEach((word) => {
@@ -156,18 +189,12 @@
   startBtn.addEventListener("click", () => {
     if (phase !== "ready") return;
     startBtn.disabled = true;
+    startBtn.classList.add("opacity-50", "cursor-not-allowed");
     startStudy();
   });
 
   submitBtn.addEventListener("click", submitRecall);
 
-  answerField.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      submitRecall();
-    }
-  });
-
   inputWrap.style.display = "none";
-  showWords(true);
+  showWords(false);
 })();

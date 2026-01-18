@@ -6,6 +6,9 @@ const overlay = document.getElementById("start-overlay");
 let startTime, timer;
 let mistakes = 0;
 let isStarted = false;
+let isFinished = false;
+let lastCorrectChars = 0;
+let lastTypedLength = 0;
 
 // Fetch random text from LLM backend
 async function fetchTargetText() {
@@ -42,6 +45,7 @@ function startTest() {
 
 // Main input event listener
 input.addEventListener("input", () => {
+  if (isFinished) return;
   if (!isStarted) startTest();
 
   const charSpans = display.querySelectorAll(".char");
@@ -68,17 +72,15 @@ input.addEventListener("input", () => {
     }
   });
 
+  lastCorrectChars = correctChars;
+  lastTypedLength = inputValue.length;
+
   // Update Metrics
-  updateMetrics(inputValue.length, correctChars);
+  updateMetrics(lastTypedLength, lastCorrectChars);
 
   // Check Completion - user must match entire target text
   if (inputValue.length >= targetText.length) {
-    // Verify complete match
-    const isComplete =
-      inputValue.slice(0, targetText.length).join("") === targetText;
-    if (isComplete) {
-      finishTest();
-    }
+    finishTest();
   }
 });
 
@@ -105,6 +107,9 @@ function updateMetrics(typedLength, correctChars) {
 
 // Finish the test and save score
 async function finishTest() {
+  if (isFinished) return;
+  isFinished = true;
+  input.disabled = true;
   const finalWpm = parseInt(document.getElementById("wpm").innerText);
   const finalAccuracy = parseInt(document.getElementById("accuracy").innerText);
 
@@ -118,10 +123,6 @@ async function finishTest() {
     adjustedScore: adjustedScore,
   });
 
-  // Show completion message
-  alert(
-    `Test Complete!\nWPM: ${finalWpm}\nAccuracy: ${finalAccuracy}%\nAdjusted Score: ${adjustedScore}`,
-  );
   window.location.href = "/dashboard";
 }
 

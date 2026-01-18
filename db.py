@@ -16,6 +16,25 @@ def init_db():
     conn.executescript(SCHEMA_PATH.read_text())
     conn.commit()
 
+    # Backfill user columns if schema evolved
+    user_columns = {
+        "age": "INTEGER",
+        "gender": "TEXT",
+        "gender_other": "TEXT",
+        "ethnicity": "TEXT",
+        "city": "TEXT",
+        "state": "TEXT",
+        "country": "TEXT",
+    }
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(user)").fetchall()}
+    for col, col_type in user_columns.items():
+        if col not in existing:
+            try:
+                conn.execute(f"ALTER TABLE user ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
     # Add details column if it doesn't exist
     try:
         conn.execute("ALTER TABLE score ADD COLUMN details TEXT")

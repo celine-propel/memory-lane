@@ -3,19 +3,20 @@
     const NODE_SIZE = 52;         // px diameter
     const BOARD_PADDING = 18;     // keep away from edges
     const MIN_DIST = 62;          // min distance between node centers
+    const MAX_TIME_MS = 60000;    // auto-finish after 60s
   
     const boardEl = document.getElementById("trBoard");
     const svgEl = document.getElementById("trLines");
     const startBtn = document.getElementById("trStart");
-    const submitBtn = document.getElementById("trSubmit");
     const progressEl = document.getElementById("trProgress");
     const metaEl = document.getElementById("trMeta");
     const statusEl = document.getElementById("trStatus");
-    if (!boardEl || !svgEl || !startBtn || !submitBtn) return;
+    if (!boardEl || !svgEl || !startBtn) return;
   
     let running = false;
     let errors = 0;
     let startTime = 0;
+    let timeoutId = null;
   
     // Order: 1, A, 2, B, 3, C ...
     let sequence = [];
@@ -123,11 +124,7 @@
     }
   
     function setNextHint() {
-      const expected = sequence[seqIndex];
-      // clear old hint
-      boardEl.querySelectorAll(".tr-hint").forEach(el => el.classList.remove("tr-hint", "ring-2", "ring-indigo-300/70"));
-      const el = boardEl.querySelector(`[data-id="${expected}"]`);
-      if (el) el.classList.add("tr-hint", "ring-2", "ring-indigo-300/70");
+      // no hinting
     }
   
     function flashWrong(el) {
@@ -201,18 +198,20 @@
       setProgress(`Step ${seqIndex} / ${sequence.length}`);
       setStatus("Good. Keep going.");
       setNextHint();
-  
+
       if (seqIndex >= sequence.length) {
-        // completed — you can auto-finish OR wait for submit
-        setStatus("Done! Press Submit to save.");
-        submitBtn.disabled = false;
-        running = false; // optional: freeze after completion
+        running = false;
+        setStatus("Done. Saving...");
+        finish();
       }
     }
   
     function finish() {
-      submitBtn.disabled = true;
-  
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
       const elapsed = Math.round(performance.now() - startTime);
       const completed = seqIndex; // number of correct taps
       const totalSteps = sequence.length;
@@ -253,6 +252,7 @@
       }).catch(() => {
         setStatus("Could not save score. Please try again.");
         startBtn.disabled = false;
+        startBtn.classList.remove("opacity-50", "cursor-not-allowed");
       });
     }
   
@@ -268,22 +268,25 @@
       setNextHint();
   
       startBtn.disabled = true;
-      submitBtn.disabled = false;
-  
+      startBtn.classList.add("opacity-50", "cursor-not-allowed");
+
       running = true;
       setProgress(`Step 0 / ${sequence.length}`);
       setStatus("Tap 1 to begin.");
-  
+
       startTime = performance.now();
+
+      if (MAX_TIME_MS && Number.isFinite(MAX_TIME_MS)) {
+        timeoutId = setTimeout(() => {
+          if (!running) return;
+          running = false;
+          setStatus("Time is up. Saving...");
+          finish();
+        }, MAX_TIME_MS);
+      }
     }
-  
+
     startBtn.addEventListener("click", start);
-    submitBtn.addEventListener("click", () => {
-      // allow submit even if not fully complete (good for scoring)
-      if (startTime === 0) return;
-      running = false;
-      finish();
-    });
   
     setProgress("Ready");
   })();

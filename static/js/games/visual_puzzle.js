@@ -1,7 +1,7 @@
 (() => {
     // ===== Config =====
     const GRID = 3;                 // 3x3
-    const DISPLAY_MS = 3500;        // preview time
+    const DISPLAY_MS = 6000;        // preview time
     const MAX_TIME_MS = 60000;      // optional cap (auto-submits at 60s). Set null to disable.
   
     // 6 pieces, all used
@@ -328,6 +328,7 @@
       setMeta();
   
       startBtn.disabled = true;
+      startBtn.classList.add("opacity-50", "cursor-not-allowed");
       submitBtn.disabled = true;
   
       locked = true;

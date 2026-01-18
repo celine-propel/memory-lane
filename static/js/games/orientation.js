@@ -5,6 +5,7 @@
   const questionEl = document.getElementById("orientationQuestion");
   const promptEl = document.getElementById("orientationPrompt");
   const answerEl = document.getElementById("orientationAnswer");
+  const selectEl = document.getElementById("orientationSelect");
   const submitBtn = document.getElementById("orientationSubmit");
 
   if (!stageEl) return;
@@ -36,6 +37,61 @@
   let questionStart = 0;
   let customAnswers = [];
 
+  function setAnswerMode(useSelect) {
+    if (useSelect) {
+      selectEl.style.display = "block";
+      answerEl.style.display = "none";
+    } else {
+      selectEl.style.display = "none";
+      answerEl.style.display = "block";
+    }
+  }
+
+  function fillSelectOptions(options) {
+    selectEl.innerHTML = "";
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "Select an option";
+    selectEl.appendChild(blank);
+    options.forEach((opt) => {
+      const option = document.createElement("option");
+      option.value = opt.value;
+      option.textContent = opt.label;
+      selectEl.appendChild(option);
+    });
+  }
+
+  function monthOptions() {
+    const months = [];
+    for (let i = 0; i < 12; i += 1) {
+      const name = new Date(2000, i, 1).toLocaleString("en-US", { month: "long" });
+      months.push({ value: name.toLowerCase(), label: name });
+    }
+    return months;
+  }
+
+  function dayOptions() {
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    return days.map((d) => ({ value: d.toLowerCase(), label: d }));
+  }
+
+  function dateOptions() {
+    const opts = [];
+    for (let i = 1; i <= 31; i += 1) {
+      opts.push({ value: String(i), label: String(i) });
+    }
+    return opts;
+  }
+
+  function yearOptions() {
+    const truth = deviceTruth();
+    const opts = [];
+    for (let y = truth.year - 10; y <= truth.year + 10; y += 1) {
+      opts.push({ value: String(y), label: String(y) });
+    }
+    return opts;
+  }
+
   async function init() {
     stageEl.textContent = "Loading";
     statusEl.textContent = "Preparing prompts...";
@@ -65,13 +121,25 @@
     const q = questions[index];
     promptEl.textContent = q.label;
     answerEl.value = "";
-    answerEl.focus();
+    selectEl.value = "";
+    if (q.type === "device") {
+      if (q.key === "month") fillSelectOptions(monthOptions());
+      if (q.key === "day") fillSelectOptions(dayOptions());
+      if (q.key === "date") fillSelectOptions(dateOptions());
+      if (q.key === "year") fillSelectOptions(yearOptions());
+      setAnswerMode(true);
+      selectEl.focus();
+    } else {
+      setAnswerMode(false);
+      answerEl.focus();
+    }
     questionStart = performance.now();
   }
 
   function checkAnswer() {
     const q = questions[index];
-    const answer = normalize(answerEl.value);
+    const raw = q.type === "device" ? selectEl.value : answerEl.value;
+    const answer = normalize(raw);
     const elapsed = Math.round(performance.now() - questionStart);
     timings.push({ key: q.key, ms: elapsed });
 
