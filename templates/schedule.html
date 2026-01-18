@@ -181,21 +181,43 @@ function displaySchedule(schedule) {
       let tasksHtml = "";
       if (day.games && Array.isArray(day.games)) {
         day.games.forEach((game, gameIndex) => {
+          const completed = !!game.completed;
           const locked = isFuture || !isToday;
-          const rowClass = locked
-            ? "bg-white/5 border-white/10 opacity-70"
-            : "bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20";
+
+          // completed wins visually (even though it’s still "today")
+          const rowClass = completed
+            ? "bg-emerald-500/10 border-emerald-500/20"
+            : locked
+              ? "bg-white/5 border-white/10 opacity-70"
+              : "bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20";
 
           const linkClass = locked
             ? "text-slate-500 pointer-events-none cursor-not-allowed"
-            : "text-indigo-300 hover:text-indigo-100";
+            : completed
+              ? "text-emerald-300 hover:text-emerald-200"
+              : "text-indigo-300 hover:text-indigo-100";
 
-          const lockTag = locked ? `<span class="text-xs text-slate-500 font-bold uppercase tracking-widest">Locked</span>` : "";
+          const lockTag = locked
+            ? `<span class="text-xs text-slate-500 font-bold uppercase tracking-widest">Locked</span>`
+            : completed
+              ? `<span class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Done</span>`
+              : "";
+
+          const checkboxAttrs = completed ? "checked" : "";
+
+          const statusIcon = completed
+            ? `<svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                      d="M5 13l4 4L19 7" />
+              </svg>`
+            : `<input type="checkbox" disabled
+                class="w-5 h-5 opacity-50 accent-indigo-500">`;
+
 
           tasksHtml += `
             <div class="flex items-center justify-between gap-3 p-3 mb-2 rounded-lg border transition-colors ${rowClass}">
               <div class="flex items-center gap-3 flex-1">
-                <input type="checkbox" disabled class="w-5 h-5 opacity-40 accent-indigo-500">
+                ${statusIcon}
                 <div class="flex-1">
                   <a href="/practice/${game.id}" class="${linkClass} font-semibold transition-colors">
                     ${game.name}
@@ -206,6 +228,8 @@ function displaySchedule(schedule) {
               ${lockTag}
             </div>
           `;
+
+
         });
       }
 

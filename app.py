@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import ollama
 import json
 import re
+from datetime import date
 
 from db import (
     init_db, create_user, get_user_by_email, get_user_by_id,
@@ -76,16 +77,17 @@ def extract_json_object(text: str):
 
 def add_dates_to_schedule(schedule_data, days):
     """
-    Ensure schedule has start_date, num_days, and day.date fields.
+    Force schedule to start today and have sequential day.date fields.
     """
     from datetime import date, timedelta
 
     today = date.today()
-    if "start_date" not in schedule_data:
-        schedule_data["start_date"] = today.isoformat()
+
+    # Force start_date and num_days
+    schedule_data["start_date"] = today.isoformat()
     schedule_data["num_days"] = int(days)
 
-    # Ensure days exist
+    # Ensure days list
     if "days" not in schedule_data or not isinstance(schedule_data["days"], list):
         schedule_data["days"] = []
 
@@ -98,15 +100,54 @@ def add_dates_to_schedule(schedule_data, days):
             "games": []
         })
 
-    # Add date for each day
-    for i, d in enumerate(schedule_data["days"]):
+    # FORCE date for each day (override whatever the model returned)
+    for i in range(days):
+        d = schedule_data["days"][i]
         if not isinstance(d, dict):
-            schedule_data["days"][i] = {"focus": "Training", "description": "", "games": []}
-            d = schedule_data["days"][i]
-        if "date" not in d:
-            d["date"] = (today + timedelta(days=i)).isoformat()
+            d = {"focus": "Training", "description": "", "games": []}
+            schedule_data["days"][i] = d
+
+        d["date"] = (today + timedelta(days=i)).isoformat()
+
+        # Ensure games exists
+        if "games" not in d or not isinstance(d["games"], list):
+            d["games"] = []
 
     return schedule_data
+
+def mark_schedule_game_completed(user_id: int, game_id: str):
+    """Mark today's instance of game_id as completed in the latest schedule."""
+    latest = get_latest_schedule(user_id)
+    if not latest:
+        return
+
+    try:
+        schedule_data = json.loads(latest["schedule_data"])
+    except:
+        return
+
+    today = date.today().isoformat()
+
+    changed = False
+    for day in schedule_data.get("days", []):
+        if day.get("date") != today:
+            continue
+
+        for g in day.get("games", []):
+            if g.get("id") == game_id:
+                if not g.get("completed"):
+                    g["completed"] = True
+                    g["completed_at"] = datetime.utcnow().isoformat()
+                    changed = True
+
+    if changed:
+        # Save as newest schedule snapshot (your app reads "latest" anyway)
+        save_schedule(
+            user_id,
+            json.dumps(schedule_data),
+            int(schedule_data.get("num_days", len(schedule_data.get("days", [])) or 7)),
+            datetime.utcnow().isoformat()
+        )
 
 
 @app.route("/")
@@ -410,20 +451,40 @@ def practice_orientation():
     return render_template("game_orientation.html", user=current_user(), subtitle="Orientation Practice")
 
 
+from datetime import date
+
 @app.route("/practice")
 @login_required
 def practice():
+    user = current_user()
+
     games = [
-        {"id": "stroop", "name": "Stroop Practice",
-            "domain": "Executive Function", "minutes": 2},
-        {"id": "typing", "name": "Typing Speed",
-            "domain": "Attention", "minutes": 2},
-        {"id": "visual_puzzle", "name": "Visual Puzzle",
-            "domain": "Visualization", "minutes": 2},
-        {"id": "trails", "name": "Trails",
-            "domain": "Pattern Identification", "minutes": 2}
+        {"id": "stroop", "name": "Stroop Practice", "domain": "Executive Function", "minutes": 2},
+        {"id": "typing", "name": "Typing Speed", "domain": "Attention", "minutes": 2},
+        {"id": "visual_puzzle", "name": "Visual Puzzle", "domain": "Visualization", "minutes": 2},
+        {"id": "trails", "name": "Trails", "domain": "Pattern Identification", "minutes": 2}
     ]
-    return render_template("practice.html", games=games, user=current_user(), subtitle="Personalized training")
+
+    todays_tasks = []
+    latest = get_latest_schedule(user["id"])
+    if latest:
+        try:
+            sched = json.loads(latest["schedule_data"])
+            today = date.today().isoformat()
+            for d in sched.get("days", []):
+                if d.get("date") == today:
+                    todays_tasks = d.get("games", []) or []
+                    break
+        except:
+            todays_tasks = []
+
+    return render_template(
+        "practice.html",
+        games=games,
+        todays_tasks=todays_tasks,
+        user=user,
+        subtitle="Personalized training"
+    )
 
 
 
@@ -463,11 +524,25 @@ def api_score():
     import json
     user = current_user()
     payload = request.get_json(force=True)
-    details = json.dumps(payload.get("details", {})
-                         ) if payload.get("details") else None
-    add_score(user["id"], payload.get("game"), payload.get(
-        "domain"), payload.get("value"), datetime.utcnow().isoformat(), details)
+
+    details = json.dumps(payload.get("details", {})) if payload.get("details") else None
+    add_score(
+        user["id"],
+        payload.get("game"),
+        payload.get("domain"),
+        payload.get("value"),
+        datetime.utcnow().isoformat(),
+        details
+    )
+
+    # NEW: mark today's scheduled instance complete
+    try:
+        mark_schedule_game_completed(user["id"], payload.get("game"))
+    except Exception as e:
+        print("Could not mark completed:", e)
+
     return jsonify({"ok": True})
+
 
 
 @app.get("/api/typing-text")
