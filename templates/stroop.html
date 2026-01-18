@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col items-center justify-center py-10 text-center">
+    <div id="game-ui">
+        <div class="text-[10px] font-black text-indigo-400 mb-4 uppercase tracking-widest">
+            Word <span id="current-trial">1</span> of 10
+        </div>
+        <h2 id="color-word" class="text-7xl font-black mb-8 transition-all uppercase">READY?</h2>
+
+        <div id="feedback-area" class="invisible mb-8 flex justify-center gap-8">
+            <div>
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Your Answer</div>
+                <div id="user-answer" class="text-xl font-black uppercase text-white">-</div>
+            </div>
+            <div>
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Real Answer</div>
+                <div id="real-answer" class="text-xl font-black uppercase text-white">-</div>
+            </div>
+        </div>
+
+        <div id="mic-status" class="flex items-center gap-3 justify-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <div class="w-3 h-3 rounded-full bg-rose-500 animate-pulse" id="status-indicator"></div>
+            <span id="status-text">Waiting for Mic...</span>
+        </div>
+    </div>
+    <div id="score-display" class="hidden text-white font-black">SAVING SIGNAL...</div>
+</div>
+
+<script>
+const words = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'ORANGE', 'PINK', 'CYAN', 'WHITE', 'GRAY'];
+const colors = ['#f87171', '#60a5fa', '#34d399', '#facc15', '#a78bfa', '#fb923c', '#f472b6', '#22d3ee', '#ffffff', '#94a3b8'];
+const colorNames = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'white', 'gray'];
+
+let currentTargetColor = "";
+let correctCount = 0;
+let trialCount = 0;
+const maxTrials = 10;
+let isProcessing = false;
+let responseTimer;
+let lastDetectedColor = ""; // Track last detected to prevent duplicates
+let trialStartTime = 0; // Track when trial started
+let listenEnabled = false; // Only listen after trial officially starts
+const timeLimit = 3000;
+const listenDelay = 400; // Delay before we start listening for this trial (to ignore old speech)
+
+function nextTrial() {
+    clearTimeout(responseTimer);
+    lastDetectedColor = ""; // Clear last detected color
+    listenEnabled = false; // Disable listening until delay passes
+    trialCount++;
+    if (trialCount > maxTrials) { finishGame(); return; }
+
+    document.getElementById('current-trial').innerText = trialCount;
+    document.getElementById('feedback-area').classList.add('invisible');
+    isProcessing = false; // Reset processing flag for new trial
+
+    const wordIndex = Math.floor(Math.random() * words.length);
+    let colorIndex;
+    do { colorIndex = Math.floor(Math.random() * colors.length); }
+    while (colorIndex === wordIndex);
+
+    const wordEl = document.getElementById('color-word');
+    wordEl.innerText = words[wordIndex];
+    wordEl.style.color = colors[colorIndex];
+    currentTargetColor = colorNames[colorIndex];
+
+    trialStartTime = Date.now();
+
+    // Enable listening after a small delay to avoid picking up speech from previous trial
+    setTimeout(() => {
+        listenEnabled = true;
+    }, listenDelay);
+
+    responseTimer = setTimeout(() => { if (!isProcessing) handleTimeout(); }, timeLimit);
+}
+
+function handleTimeout() {
+    isProcessing = true;
+    document.getElementById('user-answer').innerText = "TIMEOUT";
+    document.getElementById('user-answer').className = "text-xl font-black uppercase text-white";
+    document.getElementById('real-answer').innerText = currentTargetColor;
+    document.getElementById('feedback-area').classList.remove('invisible');
+    setTimeout(nextTrial, 1500);
+}
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+        document.getElementById('status-indicator').classList.replace('bg-rose-500', 'bg-emerald-500');
+        document.getElementById('status-indicator').classList.remove('animate-pulse');
+        document.getElementById('status-text').innerText = "Listening";
+        nextTrial();
+    };
+
+    recognition.onresult = (event) => {
+        if (isProcessing || !listenEnabled) return; // Don't process if already handled or listening not enabled
+
+        let transcript = "";
+        // Only process the LAST result, not accumulated results
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript + " ";
+        }
+        transcript = transcript.trim().toLowerCase();
+
+        let detectedColor = "";
+        for (const name of colorNames) {
+            if (transcript.includes(name)) {
+                detectedColor = name;
+                break;
+            }
+        }
+
+        // Only process if we detected a NEW color (not the same as last one)
+        if (detectedColor !== "" && detectedColor !== lastDetectedColor) {
+            lastDetectedColor = detectedColor; // Remember this color to prevent duplicates
+            listenEnabled = false; // Stop listening for this trial
+            clearTimeout(responseTimer);
+            isProcessing = true;
+
+            const userAnsEl = document.getElementById('user-answer');
+            userAnsEl.innerText = detectedColor;
+            userAnsEl.className = "text-xl font-black uppercase text-white";
+
+            document.getElementById('real-answer').innerText = currentTargetColor;
+            document.getElementById('feedback-area').classList.remove('invisible');
+
+            if (detectedColor === currentTargetColor) {
+                correctCount++;
+            }
+
+            setTimeout(nextTrial, 1500);
+        }
+    };
+    recognition.onend = () => { if(trialCount <= maxTrials) recognition.start(); };
+    recognition.start();
+}
+
+async function finishGame() {
+    clearTimeout(responseTimer);
+    document.getElementById('game-ui').classList.add('hidden');
+    document.getElementById('score-display').classList.remove('hidden');
+    const finalValue = correctCount;
+    await fetch("/api/score", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ game: "stroop", domain: "Executive Function", value: finalValue })
+    });
+    window.location.href = "/dashboard";
+}
+</script>
+{% endblock %}

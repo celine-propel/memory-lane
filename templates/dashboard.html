@@ -10,28 +10,63 @@
     <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-4">Latest by Domain</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {% for domain, s in latest_by_domain.items() %}
-        <div class="group bg-white/5 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 shadow-2xl hover:border-indigo-500/50 transition-all hover:-translate-y-1">
-          <div class="flex justify-between items-start mb-3">
-            <h3 class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">{{ domain }}</h3>
-            <div class="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_12px_rgba(129,140,248,0.8)] animate-pulse"></div>
-          </div>
+        {% if loop.first %}
+          <!-- Most Recent Test - Big/Featured -->
+          <div class="sm:col-span-2 group bg-gradient-to-br from-indigo-600/30 to-indigo-900/20 backdrop-blur-xl p-8 rounded-[2.5rem] border border-indigo-500/30 shadow-2xl hover:border-indigo-500/60 transition-all hover:-translate-y-2 overflow-hidden relative cursor-pointer score-row" data-score-id="0" data-game="{{ s.game }}" data-domain="{{ domain }}" data-value="{{ s.value }}" data-date="{{ s.created_at }}" data-details="{{ s.details|tojson if s.details else '{}' }}">
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform"></div>
 
-          <div class="flex items-baseline gap-1">
-            <span class="text-5xl font-black text-white tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-indigo-300">
-                {{ "%.2f"|format(s.value) }}
-            </span>
-            <span class="text-indigo-300/40 text-xs font-bold uppercase tracking-widest">pts</span>
-          </div>
+            <div class="relative z-10">
+              <div class="flex justify-between items-start mb-4">
+                <div>
+                  <h3 class="text-[11px] font-black text-indigo-300 uppercase tracking-widest">Most Recent Result</h3>
+                  <p class="text-indigo-200/60 text-xs mt-1">{{ domain }}</p>
+                </div>
+                <div class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(34,197,94,0.8)] animate-pulse"></div>
+              </div>
 
-          <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-             <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
+              <div class="flex items-baseline gap-2 mb-6">
+                <span class="text-7xl font-black text-white tracking-tighter">
+                    {{ "%.1f"|format(s.value) }}
+                </span>
+                <span class="text-indigo-300/60 text-sm font-bold uppercase tracking-widest">pts</span>
+              </div>
+
+              <div class="flex items-center justify-between pt-6 border-t border-indigo-400/20">
+                <span class="text-sm font-black text-indigo-300 bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/30">
+                  {{ s.game }}
+                </span>
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-tighter opacity-70">
+                  <pre>{{ scores[0] }}</pre>
+                  {{ s['created_at'].split('T')[0] if s['created_at'] else 'No Date' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <!-- Other Domains -->
+          <div class="group bg-white/5 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 shadow-2xl hover:border-indigo-500/50 transition-all hover:-translate-y-1 cursor-pointer score-row" data-score-id="0" data-game="{{ s.game }}" data-domain="{{ domain }}" data-value="{{ s.value }}" data-date="{{ s.created_at }}" data-details="{{ s.details|tojson if s.details else '{}' }}">
+            <div class="flex justify-between items-start mb-3">
+              <h3 class="text-[10px] font-black text-indigo-300 uppercase tracking-widest">{{ domain }}</h3>
+              <div class="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_12px_rgba(129,140,248,0.8)] animate-pulse"></div>
+            </div>
+
+            <div class="flex items-baseline gap-1">
+              <span class="text-5xl font-black text-white tracking-tighter bg-clip-text text-transparent bg-gradient-to-br from-white to-indigo-300">
+                  {{ "%.2f"|format(s.value) }}
+              </span>
+              <span class="text-indigo-300/40 text-xs font-bold uppercase tracking-widest">pts</span>
+            </div>
+
+            <div class="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+              <span class="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
                 {{ s.game }}
-             </span>
-             <span class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic opacity-60">
+              </span>
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic opacity-60">
                 {{ s.created_at }}
-             </span>
+              </span>
+            </div>
           </div>
-        </div>
+        {% endif %}
       {% endfor %}
 
       {% if latest_by_domain|length == 0 %}
@@ -48,10 +83,10 @@
     <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
       <div class="divide-y divide-white/5">
         {% for s in scores %}
-          <div class="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group">
+          <div class="flex items-center justify-between p-5 hover:bg-white/5 transition-colors group cursor-pointer score-row" data-score-id="{{ s.id }}" data-game="{{ s.game }}" data-domain="{{ s.domain }}" data-value="{{ s.value }}" data-date="{{ s.created_at }}" data-details="{{ s.details|tojson if s.details else '{}' }}">
             <div class="flex flex-col">
               <span class="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">{{ s.game }}</span>
-              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{{ s.domain }} • {{ s.created_at }}</span>
+              <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{{ s.domain }} • {{ s.created_at.split('T')[0] }}</span>
             </div>
             <div class="bg-indigo-600 text-white font-mono text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg shadow-indigo-900/40 border border-indigo-400/30">
               {{ "%.2f"|format(s.value) }}
@@ -74,4 +109,109 @@
     </div>
   </div>
 </div>
+
+<!-- Score Details Modal -->
+<div id="scoreModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-slate-950 border border-indigo-500/30 rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 relative overflow-hidden">
+    <div class="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl"></div>
+
+    <div class="relative z-10">
+      <button onclick="closeScoreDetails()" class="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <h3 id="modalGame" class="text-2xl font-black text-white mb-2">Test Name</h3>
+      <p id="modalDomain" class="text-indigo-300/60 text-xs font-bold uppercase tracking-widest mb-6 border-b border-indigo-500/20 pb-4">Domain</p>
+
+      <div class="space-y-4">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+          <span class="text-[10px] font-black text-indigo-400 uppercase tracking-wider">Score</span>
+          <p id="modalScore" class="text-4xl font-black text-white mt-2">0</p>
+        </div>
+
+        <div id="detailsContainer" class="space-y-3">
+          <!-- Details will be populated here -->
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+          <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Date & Time</span>
+          <p id="modalDate" class="text-sm text-white mt-2">--</p>
+        </div>
+      </div>
+
+      <button onclick="closeScoreDetails()" class="w-full mt-6 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-wider rounded-xl transition-colors">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Format date time to readable format
+function formatDateTime(isoString) {
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return isoString;
+  }
+}
+
+// Add click handlers to score rows
+document.querySelectorAll(".score-row").forEach(row => {
+  row.addEventListener("click", function() {
+    const id = this.dataset.scoreId;
+    const game = this.dataset.game;
+    const domain = this.dataset.domain;
+    const value = parseFloat(this.dataset.value);
+    const date = this.dataset.date;
+    const details = JSON.parse(this.dataset.details);
+
+    showScoreDetails(id, game, domain, value, date, details);
+  });
+});
+
+function showScoreDetails(id, game, domain, score, date, details) {
+  document.getElementById("modalGame").textContent = game;
+  document.getElementById("modalDomain").textContent = domain;
+  document.getElementById("modalScore").textContent = score.toFixed(2);
+  document.getElementById("modalDate").textContent = formatDateTime(date);
+
+  const detailsContainer = document.getElementById("detailsContainer");
+  detailsContainer.innerHTML = "";
+
+  // Parse and display details if available
+  if (details && typeof details === 'object' && Object.keys(details).length > 0) {
+    for (const [key, value] of Object.entries(details)) {
+      const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+      const detailDiv = document.createElement("div");
+      detailDiv.className = "bg-white/5 border border-white/10 rounded-xl p-4";
+      detailDiv.innerHTML = `
+        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-wider">${label}</span>
+        <p class="text-lg font-black text-white mt-2">${typeof value === 'number' ? value.toFixed(2) : value}</p>
+      `;
+      detailsContainer.appendChild(detailDiv);
+    }
+  }
+
+  document.getElementById("scoreModal").classList.remove("hidden");
+}
+
+function closeScoreDetails() {
+  document.getElementById("scoreModal").classList.add("hidden");
+}
+
+// Close modal when clicking outside
+document.getElementById("scoreModal")?.addEventListener("click", function(e) {
+  if (e.target === this) {
+    closeScoreDetails();
+  }
+});
+</script>
 {% endblock %}

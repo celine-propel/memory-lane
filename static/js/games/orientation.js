@@ -1,64 +1,58 @@
 (() => {
   const stageEl = document.getElementById("orientationStage");
   const metaEl = document.getElementById("orientationMeta");
-  const setupEl = document.getElementById("orientationSetup");
-  const beginBtn = document.getElementById("orientationBegin");
   const statusEl = document.getElementById("orientationStatus");
   const questionEl = document.getElementById("orientationQuestion");
   const promptEl = document.getElementById("orientationPrompt");
   const answerEl = document.getElementById("orientationAnswer");
   const submitBtn = document.getElementById("orientationSubmit");
 
-  const cityEl = document.getElementById("orientationCity");
-  const stateEl = document.getElementById("orientationState");
-  const placeEl = document.getElementById("orientationPlace");
-
   if (!stageEl) return;
 
-  const now = new Date();
-  const expected = {
-    date: String(now.getDate()),
-    month: now.toLocaleString("en-US", { month: "long" }).toLowerCase(),
-    year: String(now.getFullYear()),
-    day: now.toLocaleString("en-US", { weekday: "long" }).toLowerCase(),
-    city: "",
-    state: "",
-    place: ""
-  };
-
-  const questions = [
-    { key: "date", label: "What is the date today?" },
-    { key: "month", label: "What month is it?" },
-    { key: "year", label: "What year is it?" },
-    { key: "day", label: "What day of the week is it?" },
-    { key: "place", label: "Where are you right now?" },
-    { key: "city", label: "What city are we in?" },
-    { key: "state", label: "What state are we in?" }
-  ];
-
-  let index = 0;
-  let score = 0;
-  let timings = [];
-  let questionStart = 0;
-
   function normalize(text) {
-    return text.trim().toLowerCase();
+    return String(text || "").trim().toLowerCase();
+  }
+  function digitsOnly(text) {
+    return normalize(text).replace(/[^\d]/g, "");
+  }
+  function deviceTruth() {
+    const now = new Date(); // device local time (exact day)
+    return {
+      year: now.getFullYear(),
+      date: now.getDate(),
+      month: now.toLocaleString("en-US", { month: "long" }).toLowerCase(),
+      day: now.toLocaleString("en-US", { weekday: "long" }).toLowerCase(),
+    };
+  }
+  function isCorrectDate(answer, expectedNumber) {
+    const d = digitsOnly(answer);
+    return d ? Number(d) === expectedNumber : false;
   }
 
-  function startQuestions() {
-    expected.city = normalize(cityEl.value);
-    expected.state = normalize(stateEl.value);
-    expected.place = normalize(placeEl.value);
+  let questions = [];
+  let index = 0;
+  let deviceScore = 0;
+  let timings = [];
+  let questionStart = 0;
+  let customAnswers = [];
 
-    if (!expected.city || !expected.state || !expected.place) {
-      statusEl.textContent = "Please fill out city, state, and place to continue.";
-      return;
-    }
+  async function init() {
+    stageEl.textContent = "Loading";
+    statusEl.textContent = "Preparing prompts...";
+    questionEl.style.display = "none";
 
-    setupEl.style.display = "none";
-    questionEl.style.display = "grid";
-    questionEl.setAttribute("aria-hidden", "false");
+    const res = await fetch("/api/orientation/prompts");
+    const data = await res.json();
+    questions = data.questions || [];
+
+    // If user has zero custom questions, this still works (device-only).
+    index = 0;
+    deviceScore = 0;
+    timings = [];
+    customAnswers = [];
+
     stageEl.textContent = "Answer";
+    questionEl.style.display = "grid";
     statusEl.textContent = "Answer each prompt and press submit.";
     showQuestion();
   }
@@ -68,18 +62,18 @@
       finish();
       return;
     }
-    const current = questions[index];
-    promptEl.textContent = current.label;
+    const q = questions[index];
+    promptEl.textContent = q.label;
     answerEl.value = "";
     answerEl.focus();
     questionStart = performance.now();
   }
 
   function checkAnswer() {
-    const current = questions[index];
+    const q = questions[index];
     const answer = normalize(answerEl.value);
     const elapsed = Math.round(performance.now() - questionStart);
-    timings.push({ key: current.key, ms: elapsed });
+    timings.push({ key: q.key, ms: elapsed });
 
     if (!answer) {
       index += 1;
@@ -87,28 +81,46 @@
       return;
     }
 
-    if (current.key === "month") {
-      if (answer === expected.month) score += 1;
-    } else if (current.key === "day") {
-      if (answer === expected.day) score += 1;
-    } else if (current.key === "date") {
-      if (answer === expected.date) score += 1;
-    } else if (current.key === "year") {
-      if (answer === expected.year) score += 1;
+    if (q.type === "device") {
+      // recompute device truth each question (handles midnight rollover)
+      const truth = deviceTruth();
+      if (q.key === "month" && answer === truth.month) deviceScore += 1;
+      if (q.key === "day" && answer === truth.day) deviceScore += 1;
+      if (q.key === "year" && digitsOnly(answer) === String(truth.year)) deviceScore += 1;
+      if (q.key === "date" && isCorrectDate(answer, truth.date)) deviceScore += 1;
     } else {
-      const expectedValue = expected[current.key];
-      if (expectedValue && answer === expectedValue) score += 1;
+      customAnswers.push({ key: q.key, answer });
     }
 
     index += 1;
     showQuestion();
   }
 
-  function finish() {
+  async function finish() {
     stageEl.textContent = "Done";
     questionEl.style.display = "none";
-    metaEl.textContent = `Score: ${score} / ${questions.length}`;
-    statusEl.textContent = "Saving to your dashboard...";
+    statusEl.textContent = "Grading and saving...";
+
+    // grade custom answers server-side
+    let customScore = 0;
+    let customTotal = 0;
+
+    try {
+      const res = await fetch("/api/orientation/grade_custom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: customAnswers }),
+      });
+      const data = await res.json();
+      customScore = data.customScore || 0;
+      customTotal = data.customTotal || 0;
+    } catch {}
+
+    const deviceTotal = questions.filter(q => q.type === "device").length;
+    const totalScore = deviceScore + customScore;
+    const totalTotal = deviceTotal + customTotal;
+
+    metaEl.textContent = `Score: ${totalScore} / ${totalTotal}`;
 
     fetch("/api/score", {
       method: "POST",
@@ -116,28 +128,31 @@
       body: JSON.stringify({
         game: "orientation",
         domain: "Orientation",
-        value: score,
-        timings
+        value: totalScore,
+        details: {
+          max: totalTotal,
+          deviceScore,
+          customScore,
+          timings
+        }
+      }),
+    })
+      .then(() => {
+        statusEl.textContent = "Saved. Redirecting to dashboard...";
+        setTimeout(() => (window.location.href = "/dashboard"), 800);
       })
-    }).then(() => {
-      statusEl.textContent = "Saved. Redirecting to dashboard...";
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 800);
-    }).catch(() => {
-      statusEl.textContent = "Could not save score. Please try again.";
-      setupEl.style.display = "grid";
-      questionEl.style.display = "none";
-    });
+      .catch(() => {
+        statusEl.textContent = "Could not save score. Please try again.";
+      });
   }
 
-  beginBtn.addEventListener("click", startQuestions);
   submitBtn.addEventListener("click", checkAnswer);
-
   answerEl.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       checkAnswer();
     }
   });
+
+  init();
 })();

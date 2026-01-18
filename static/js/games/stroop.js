@@ -20,6 +20,8 @@
   let running = false;
   let trialIndex = 0;
   let errors = 0;
+  let correctOnFirstTry = 0; // NEW: Track perfect hits
+  let isFirstAttempt = true; // NEW: Track if current trial is on first attempt
   let times = [];
   let currentInk = null;
   let currentWord = null;
@@ -55,6 +57,7 @@
       finish();
       return;
     }
+    isFirstAttempt = true; 
     pickTrial();
     renderTrial();
     trialStart = performance.now();
@@ -67,10 +70,10 @@
     const total = times.reduce((a, b) => a + b, 0);
     const meanMs = times.length ? Math.round(total / times.length) : 0;
     const score = Math.max(0, 3 - errors);
-
+    const scorePercentage = Math.round((correctOnFirstTry / TRIALS) * 100);
     wordEl.textContent = "DONE";
     wordEl.style.color = "#0f172a";
-    progressEl.textContent = `Score: ${score} / 3`;
+    progressEl.textContent = `Score: ${scorePercentage}%`; // Show as percentage
     metaEl.textContent = `Mean RT: ${meanMs} ms`;
     statusEl.textContent = "Saving to your dashboard...";
 
@@ -80,7 +83,7 @@
       body: JSON.stringify({
         game: "stroop",
         domain: "Executive Function",
-        value: score,
+        value: scorePercentage,
         errors,
         mean_ms: meanMs
       })
@@ -98,13 +101,16 @@
   function handleChoice(colorName) {
     if (!running) return;
     if (colorName === currentInk.name) {
+      if (isFirstAttempt) {
+        correctOnFirstTry += 1; // Increment only if they got it right first try
+      }
       const elapsed = performance.now() - trialStart;
       times.push(elapsed);
       trialIndex += 1;
       nextTrial();
       return;
     }
-
+    isFirstAttempt = false; // They missed the first attempt for this trial
     errors += 1;
     metaEl.textContent = `Errors: ${errors}`;
     statusEl.textContent = "Incorrect. Try the ink color.";

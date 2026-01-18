@@ -104,15 +104,19 @@ function updateMetrics(typedLength, correctChars) {
 }
 
 // Finish the test and save score
-function finishTest() {
+async function finishTest() {
   const finalWpm = parseInt(document.getElementById("wpm").innerText);
   const finalAccuracy = parseInt(document.getElementById("accuracy").innerText);
 
   // Calculate combined score (WPM adjusted by accuracy)
   const adjustedScore = Math.round(finalWpm * (finalAccuracy / 100));
 
-  // Save the score to backend
-  saveTypingScore("typing-velocity", "Psychomotor", adjustedScore);
+  // Save the score to backend with details
+  await saveTypingScore("typing", "Attention", adjustedScore, {
+    wpm: finalWpm,
+    accuracy: finalAccuracy,
+    adjustedScore: adjustedScore,
+  });
 
   // Show completion message
   alert(
@@ -122,7 +126,7 @@ function finishTest() {
 }
 
 // Save typing score to backend
-async function saveTypingScore(game, domain, score) {
+async function saveTypingScore(game, domain, score, details = {}) {
   try {
     const response = await fetch("/api/score", {
       method: "POST",
@@ -131,6 +135,7 @@ async function saveTypingScore(game, domain, score) {
         game: game,
         domain: domain,
         value: score,
+        details: details,
       }),
     });
     const data = await response.json();

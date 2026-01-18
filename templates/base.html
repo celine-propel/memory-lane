@@ -41,13 +41,16 @@
   <div class="min-h-screen flex flex-col">
 
     <header class="sticky top-0 z-30 glass-nav border-b px-6 py-4 flex justify-between items-center shadow-lg">
-      <div>
-        <div class="text-lg font-black tracking-tight text-white leading-tight">
-          <a class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400" href="/">
-            Cognitive Check-In
-          </a>
+      <div class="flex items-center gap-3">
+        <img src="/static/img/favicon.png" alt="dejawho" class="w-14 h-14">
+        <div>
+          <div class="text-[24px] font-black tracking-tight text-white leading-tight">
+            <a class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400" href="/">
+              DejaWHO
+            </a>
+          </div>
+          <div class="text-[10px] font-bold text-indigo-300/70 uppercase tracking-[0.2em]">{{ subtitle or "Neural Monitoring" }}</div>
         </div>
-        <div class="text-[10px] font-bold text-indigo-300/70 uppercase tracking-[0.2em]">{{ subtitle or "Neural Monitoring" }}</div>
       </div>
 
       {% if user %}
@@ -57,6 +60,7 @@
         </button>
         <div id="profileMenu" class="hidden absolute right-0 mt-3 w-48 bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 py-2 ring-1 ring-black/5">
             <div class="px-4 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest border-b border-white/5 mb-1">{{ user.name }}</div>
+            <a href="/profile" class="block px-4 py-2 text-sm text-slate-300 hover:bg-indigo-600 hover:text-white transition-colors">Profile</a>
             <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-300 hover:bg-indigo-600 hover:text-white transition-colors">Dashboard</a>
             <a href="/logout" class="block px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors">Log out</a>
         </div>
@@ -71,7 +75,7 @@
     </main>
 
     <div class="fixed bottom-6 left-0 right-0 px-6 z-40">
-        <nav class="max-w-md mx-auto glass-nav border rounded-3xl px-6 py-3 flex justify-around items-center shadow-2xl ring-1 ring-white/10">
+        <nav class="max-w-lg mx-auto glass-nav border rounded-3xl px-6 py-3 flex justify-around items-center shadow-2xl ring-1 ring-white/10">
           <a href="/tests" data-tab="tests" class="tab-link flex flex-col items-center gap-1 group">
             <div class="p-2 rounded-xl group-[.active]:bg-indigo-500 group-[.active]:text-white text-slate-400 transition-all group-[.active]:active-tab-glow">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
@@ -84,6 +88,13 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
             <span class="text-[9px] font-black uppercase tracking-widest group-[.active]:text-indigo-300 text-slate-500">Practice</span>
+          </a>
+
+          <a href="/schedule" data-tab="schedule" class="tab-link flex flex-col items-center gap-1 group">
+            <div class="p-2 rounded-xl group-[.active]:bg-indigo-500 group-[.active]:text-white text-slate-400 transition-all group-[.active]:active-tab-glow">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <span class="text-[9px] font-black uppercase tracking-widest group-[.active]:text-indigo-300 text-slate-500">Schedule</span>
           </a>
 
           <a href="/dashboard" data-tab="dashboard" class="tab-link flex flex-col items-center gap-1 group">
