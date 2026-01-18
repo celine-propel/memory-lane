@@ -6,7 +6,7 @@
             Word <span id="current-trial">1</span> of 10
         </div>
         <h2 id="color-word" class="text-7xl font-black mb-8 transition-all uppercase">READY?</h2>
-        
+
         <div id="feedback-area" class="invisible mb-8 flex justify-center gap-8">
             <div>
                 <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Your Answer</div>
@@ -34,29 +34,42 @@ const colorNames = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink'
 let currentTargetColor = "";
 let correctCount = 0;
 let trialCount = 0;
-const maxTrials = 10; 
+const maxTrials = 10;
 let isProcessing = false;
-let responseTimer; 
-const timeLimit = 3000; 
+let responseTimer;
+let lastDetectedColor = ""; // Track last detected to prevent duplicates
+let trialStartTime = 0; // Track when trial started
+let listenEnabled = false; // Only listen after trial officially starts
+const timeLimit = 3000;
+const listenDelay = 400; // Delay before we start listening for this trial (to ignore old speech)
 
 function nextTrial() {
     clearTimeout(responseTimer);
+    lastDetectedColor = ""; // Clear last detected color
+    listenEnabled = false; // Disable listening until delay passes
     trialCount++;
     if (trialCount > maxTrials) { finishGame(); return; }
 
     document.getElementById('current-trial').innerText = trialCount;
     document.getElementById('feedback-area').classList.add('invisible');
-    isProcessing = false;
+    isProcessing = false; // Reset processing flag for new trial
 
     const wordIndex = Math.floor(Math.random() * words.length);
     let colorIndex;
-    do { colorIndex = Math.floor(Math.random() * colors.length); } 
+    do { colorIndex = Math.floor(Math.random() * colors.length); }
     while (colorIndex === wordIndex);
 
     const wordEl = document.getElementById('color-word');
     wordEl.innerText = words[wordIndex];
     wordEl.style.color = colors[colorIndex];
     currentTargetColor = colorNames[colorIndex];
+
+    trialStartTime = Date.now();
+
+    // Enable listening after a small delay to avoid picking up speech from previous trial
+    setTimeout(() => {
+        listenEnabled = true;
+    }, listenDelay);
 
     responseTimer = setTimeout(() => { if (!isProcessing) handleTimeout(); }, timeLimit);
 }
@@ -85,36 +98,43 @@ if (SpeechRecognition) {
     };
 
     recognition.onresult = (event) => {
-        if (isProcessing) return;
+        if (isProcessing || !listenEnabled) return; // Don't process if already handled or listening not enabled
+
         let transcript = "";
+        // Only process the LAST result, not accumulated results
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-            transcript += event.results[i][0].transcript;
+            transcript += event.results[i][0].transcript + " ";
         }
         transcript = transcript.trim().toLowerCase();
 
         let detectedColor = "";
         for (const name of colorNames) {
-            if (transcript.includes(name)) { detectedColor = name; break; }
+            if (transcript.includes(name)) {
+                detectedColor = name;
+                break;
+            }
         }
 
-        if (detectedColor !== "") {
-        clearTimeout(responseTimer);
-        isProcessing = true;
-        
-        const userAnsEl = document.getElementById('user-answer');
-        userAnsEl.innerText = detectedColor;
-        // ALWAYS use text-white regardless of correctness
-        userAnsEl.className = "text-xl font-black uppercase text-white"; 
+        // Only process if we detected a NEW color (not the same as last one)
+        if (detectedColor !== "" && detectedColor !== lastDetectedColor) {
+            lastDetectedColor = detectedColor; // Remember this color to prevent duplicates
+            listenEnabled = false; // Stop listening for this trial
+            clearTimeout(responseTimer);
+            isProcessing = true;
 
-        document.getElementById('real-answer').innerText = currentTargetColor;
-        document.getElementById('feedback-area').classList.remove('invisible');
+            const userAnsEl = document.getElementById('user-answer');
+            userAnsEl.innerText = detectedColor;
+            userAnsEl.className = "text-xl font-black uppercase text-white";
 
-        if (detectedColor === currentTargetColor) {
-            correctCount++;
+            document.getElementById('real-answer').innerText = currentTargetColor;
+            document.getElementById('feedback-area').classList.remove('invisible');
+
+            if (detectedColor === currentTargetColor) {
+                correctCount++;
+            }
+
+            setTimeout(nextTrial, 1500);
         }
-        
-        setTimeout(nextTrial, 1500);
-    }
     };
     recognition.onend = () => { if(trialCount <= maxTrials) recognition.start(); };
     recognition.start();
