@@ -1,0 +1,9 @@
+# Core data + modeling
+pandas
+numpy
+scikit-learn
+matplotlib
+joblib
+
+# Optional model
+xgboost
