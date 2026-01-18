@@ -36,7 +36,8 @@
                   {{ s.game }}
                 </span>
                 <span class="text-xs text-slate-400 font-bold uppercase tracking-tighter opacity-70">
-                  {{ s.created_at.split('T')[0] }}
+                  <pre>{{ scores[0] }}</pre>
+                  {{ s['created_at'].split('T')[0] if s['created_at'] else 'No Date' }}
                 </span>
               </div>
             </div>
