@@ -20,15 +20,33 @@
         </div>
       </div>
     </div>
-  {% elif current_schedule %}
-    <!-- Display Current Schedule -->
-    <section class="mb-10">
-      <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-6">Your {{ current_schedule.num_days }}-Day Schedule</h2>
+  {% else %}
+
+    <!-- Generate / Regenerate Button -->
+    <div class="mb-8">
+      {% if current_schedule %}
+        <button onclick="showRegenerateModal()" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-black uppercase tracking-wider rounded-xl transition-colors border border-white/20">
+          Generate New Schedule
+        </button>
+      {% else %}
+        <div class="bg-gradient-to-br from-indigo-600/30 to-indigo-900/20 backdrop-blur-xl p-8 rounded-[2.5rem] border border-indigo-500/30 shadow-2xl">
+          <h3 class="text-2xl font-black text-white mb-4">Create Your Training Schedule</h3>
+          <p class="text-indigo-100/70 text-sm mb-8">AI will analyze your assessment scores and create a personalized schedule optimized for your cognitive development.</p>
+          <button onclick="showScheduleModal()" class="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-black uppercase tracking-widest rounded-2xl transition-colors shadow-lg">
+            Generate Schedule
+          </button>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Schedule Display (ALWAYS EXISTS NOW) -->
+    <section id="scheduleSection" class="mb-10 hidden">
+      <h2 id="scheduleTitle" class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-6">Your Schedule</h2>
       <div id="scheduleDisplay" class="space-y-4"></div>
     </section>
 
-    <!-- Chat Interface -->
-    <section class="mb-10">
+    <!-- Chat Interface (ALWAYS EXISTS NOW) -->
+    <section id="chatSection" class="mb-10 hidden">
       <h2 class="text-xs font-black uppercase tracking-[0.2em] text-indigo-400/80 mb-4">Adjust Your Schedule</h2>
       <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <div id="chatMessages" class="h-96 overflow-y-auto p-6 space-y-4 divide-y divide-white/5">
@@ -43,19 +61,7 @@
         </div>
       </div>
     </section>
-
-    <button onclick="showRegenerateModal()" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-black uppercase tracking-wider rounded-xl transition-colors border border-white/20">
-      Generate New Schedule
-    </button>
-  {% else %}
-    <!-- Generate Initial Schedule -->
-    <div class="bg-gradient-to-br from-indigo-600/30 to-indigo-900/20 backdrop-blur-xl p-8 rounded-[2.5rem] border border-indigo-500/30 shadow-2xl">
-      <h3 class="text-2xl font-black text-white mb-4">Create Your Training Schedule</h3>
-      <p class="text-indigo-100/70 text-sm mb-8">AI will analyze your assessment scores and create a personalized schedule optimized for your cognitive development.</p>
-      <button onclick="showScheduleModal()" class="px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-black uppercase tracking-widest rounded-2xl transition-colors shadow-lg">
-        Generate Schedule
-      </button>
-    </div>
+    
   {% endif %}
 </div>
 
@@ -98,23 +104,24 @@
 let selectedDays = null;
 let currentScheduleData = {{ schedule_json | tojson | safe }};
 
-
 function showScheduleModal() {
   document.getElementById("daysModal").classList.remove("hidden");
 }
-
 function showRegenerateModal() {
   document.getElementById("daysModal").classList.remove("hidden");
 }
-
 function closeDaysModal() {
   document.getElementById("daysModal").classList.add("hidden");
 }
-
 function selectDays(days) {
   selectedDays = days;
   document.getElementById("daysModal").classList.add("hidden");
   generateSchedule(days);
+}
+
+function showScheduleUI() {
+  document.getElementById("scheduleSection")?.classList.remove("hidden");
+  document.getElementById("chatSection")?.classList.remove("hidden");
 }
 
 async function generateSchedule(days) {
@@ -132,8 +139,8 @@ async function generateSchedule(days) {
 
     if (data.ok) {
       currentScheduleData = data.schedule;
+      showScheduleUI();
       displaySchedule(data.schedule);
-      document.getElementById("scheduleDisplay")?.parentElement.classList.remove("hidden");
     }
   } catch (error) {
     console.error("Error generating schedule:", error);
@@ -141,35 +148,69 @@ async function generateSchedule(days) {
   }
 }
 
+function formatDateLabel(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d.getTime())) return null;
+  return d.toDateString();
+}
+
 function displaySchedule(schedule) {
   const display = document.getElementById("scheduleDisplay");
   if (!display) return;
 
   display.innerHTML = "";
+  showScheduleUI();
+
+  const title = document.getElementById("scheduleTitle");
+  const ndays = schedule?.num_days || schedule?.days?.length || "";
+  title.textContent = ndays ? `Your ${ndays}-Day Schedule` : "Your Schedule";
+
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   if (schedule.days && Array.isArray(schedule.days)) {
     schedule.days.forEach((day, index) => {
       const dayDiv = document.createElement("div");
       dayDiv.className = "bg-white/5 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 shadow-2xl";
 
+      const dayDate = day.date || null;
+      const dateLabel = formatDateLabel(dayDate) || `Day ${index + 1}`;
+      const isToday = dayDate ? (dayDate === todayStr) : (index === 0); // fallback: Day 1 acts like today
+      const isFuture = dayDate ? (dayDate > todayStr) : (index > 0);
+
       let tasksHtml = "";
       if (day.games && Array.isArray(day.games)) {
         day.games.forEach((game, gameIndex) => {
+          const locked = isFuture || !isToday;
+          const rowClass = locked
+            ? "bg-white/5 border-white/10 opacity-70"
+            : "bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/20";
+
+          const linkClass = locked
+            ? "text-slate-500 pointer-events-none cursor-not-allowed"
+            : "text-indigo-300 hover:text-indigo-100";
+
+          const lockTag = locked ? `<span class="text-xs text-slate-500 font-bold uppercase tracking-widest">Locked</span>` : "";
+
           tasksHtml += `
-            <div class="flex items-center gap-3 p-3 mb-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
-              <input type="checkbox" id="game-${index}-${gameIndex}" class="w-5 h-5 cursor-pointer accent-indigo-500">
-              <label for="game-${index}-${gameIndex}" class="flex-1 cursor-pointer">
-                <a href="/practice/${game.id}" class="text-indigo-300 hover:text-indigo-100 font-semibold transition-colors">
-                  ${game.name}
-                </a>
-              </label>
+            <div class="flex items-center justify-between gap-3 p-3 mb-2 rounded-lg border transition-colors ${rowClass}">
+              <div class="flex items-center gap-3 flex-1">
+                <input type="checkbox" disabled class="w-5 h-5 opacity-40 accent-indigo-500">
+                <div class="flex-1">
+                  <a href="/practice/${game.id}" class="${linkClass} font-semibold transition-colors">
+                    ${game.name}
+                  </a>
+                  ${game.reason ? `<div class="text-xs text-slate-400 mt-1">${game.reason}</div>` : ``}
+                </div>
+              </div>
+              ${lockTag}
             </div>
           `;
         });
       }
 
       dayDiv.innerHTML = `
-        <h4 class="text-lg font-black text-white mb-2">Day ${index + 1}: ${day.focus || 'Training'}</h4>
+        <h4 class="text-lg font-black text-white mb-2">${dateLabel}: ${day.focus || 'Training'}</h4>
         <p class="text-indigo-200/60 text-sm mb-4">${day.description || ''}</p>
         <div class="space-y-2">
           ${tasksHtml}
@@ -184,7 +225,6 @@ function displaySchedule(schedule) {
 async function sendChatMessage() {
   const input = document.getElementById("chatInput");
   const message = input.value.trim();
-
   if (!message) return;
 
   const chatMessages = document.getElementById("chatMessages");
@@ -204,7 +244,7 @@ async function sendChatMessage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: message,
-        currentSchedule: currentScheduleData
+        currentSchedule: currentScheduleData,
       })
     });
 
@@ -216,7 +256,6 @@ async function sendChatMessage() {
     aiDiv.innerHTML = `<p class="text-indigo-200"><strong>Coach:</strong> ${data.response}</p>`;
     chatMessages.appendChild(aiDiv);
 
-    // Update schedule if modified
     if (data.updatedSchedule) {
       currentScheduleData = data.updatedSchedule;
       displaySchedule(data.updatedSchedule);
@@ -228,8 +267,9 @@ async function sendChatMessage() {
   }
 }
 
-// Display initial schedule if exists
+// Initial render if DB had a schedule
 if (currentScheduleData && Object.keys(currentScheduleData).length > 0) {
+  showScheduleUI();
   displaySchedule(currentScheduleData);
 }
 </script>
