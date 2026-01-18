@@ -119,8 +119,9 @@
     const deviceTotal = questions.filter(q => q.type === "device").length;
     const totalScore = deviceScore + customScore;
     const totalTotal = deviceTotal + customTotal;
+    const scorePercentage = Math.round((totalScore / totalTotal) * 100);
 
-    metaEl.textContent = `Score: ${totalScore} / ${totalTotal}`;
+    metaEl.textContent = `Score: ${scorePercentage}%`;
 
     fetch("/api/score", {
       method: "POST",
@@ -128,7 +129,7 @@
       body: JSON.stringify({
         game: "orientation",
         domain: "Orientation",
-        value: totalScore,
+        value: scorePercentage,
         details: {
           max: totalTotal,
           deviceScore,

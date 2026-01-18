@@ -6,14 +6,10 @@
       Verbal Fluency · <span id="time-left">30</span>s left
     </div>
 
-    <h2 class="text-3xl sm:text-4xl font-black text-white mb-2">
+    <h2 class="text-3xl sm:text-4xl font-black text-white mb-8">
       Name as many <span id="category-label" class="text-indigo-200">—</span>
     </h2>
-    <div class="text-lg sm:text-xl font-black text-white/90 mb-8">
-      that start with <span id="letter-label" class="text-indigo-200">—</span>
-    </div>
 
-    <!-- Live subtitle / last heard -->
     <div class="mb-6">
       <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Last Heard</div>
       <div id="subtitle"
@@ -25,12 +21,11 @@
       </div>
     </div>
 
-    <!-- Score + list -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
       <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
         <div class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200/70">Counted</div>
         <div id="counted" class="text-5xl font-black text-white mt-2">0</div>
-        <div class="text-xs text-slate-300/70 mt-2">Unique items that match letter.</div>
+        <div class="text-xs text-slate-300/70 mt-2">Unique items in category.</div>
       </div>
 
       <div class="rounded-2xl bg-white/5 border border-white/10 p-5 text-left">
@@ -65,22 +60,20 @@
   // ===== Config =====
   const DURATION_S = 30;
 
-  // Choose from a pool each run (feel free to expand)
+  // Updated to Category-only rotation
   const PROMPTS = [
-    { category: "animals", letter: "a", domain: "Language" },
-    { category: "fruits", letter: "b", domain: "Language" },
-    { category: "countries", letter: "c", domain: "Language" },
-    { category: "foods", letter: "s", domain: "Language" },
-    { category: "sports", letter: "t", domain: "Language" }
+    { category: "animals", domain: "Language" },
+    { category: "fruits", domain: "Language" },
+    { category: "countries", domain: "Language" },
+    { category: "foods", domain: "Language" },
+    { category: "sports", domain: "Language" }
   ];
 
-  // Basic “filler words” to ignore if speech recognition adds them
   const STOPWORDS = new Set(["a","an","the","and","or","of","to","for","like"]);
 
   // ===== DOM =====
   const timeLeftEl = document.getElementById("time-left");
   const categoryEl = document.getElementById("category-label");
-  const letterEl = document.getElementById("letter-label");
   const subtitleEl = document.getElementById("subtitle");
   const countedEl = document.getElementById("counted");
   const acceptedListEl = document.getElementById("accepted-list");
@@ -100,24 +93,28 @@
   let timerId = null;
   let endAt = 0;
 
-  // store accepted items (normalized)
   const accepted = new Set();
-  const acceptedRaw = []; // for display
+  const acceptedRaw = [];
 
-  // metrics
   let totalUtterances = 0;
   let rejectedUtterances = 0;
   let duplicates = 0;
 
-  // Speech recognition
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null;
 
   // ===== Helpers =====
-  function pickPrompt() {
-    return PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
-  }
 
+  let availablePrompts = [];
+
+  function pickPrompt() {
+    // If empty, refill and shuffle the pool
+    if (availablePrompts.length === 0) {
+      availablePrompts = [...PROMPTS].sort(() => Math.random() - 0.5);
+    }
+    // Pull one category out
+    return availablePrompts.pop();
+  }
   function setSubtitle(text, ok) {
     subtitleEl.textContent = text || "—";
     subtitleEl.className =
@@ -128,7 +125,6 @@
   function addAccepted(word) {
     accepted.add(word);
     acceptedRaw.unshift(word);
-    // render list (latest first)
     acceptedListEl.innerHTML = acceptedRaw.slice(0, 24).map(w =>
       `<div class="px-2 py-1 rounded-lg bg-white/5 border border-white/10">${w}</div>`
     ).join("");
@@ -138,23 +134,16 @@
   function normalizeToken(t) {
     return t
       .toLowerCase()
-      .replace(/[^a-z]/g, "")      // keep letters only
+      .replace(/[^a-z]/g, "")
       .trim();
   }
 
-  // Very simple extraction:
-  // - take transcript, split into tokens, ignore stopwords, take the FIRST "real" token
-  // - you can later switch to last token or detect multiple items
   function extractCandidate(transcript) {
     const tokens = transcript.split(/\s+/).map(normalizeToken).filter(Boolean);
     for (const tok of tokens) {
       if (!STOPWORDS.has(tok)) return tok;
     }
     return "";
-  }
-
-  function matchesLetter(word, letter) {
-    return word && word[0] === letter;
   }
 
   function updateTimer() {
@@ -194,22 +183,28 @@
     scoreDisplay.classList.remove("hidden");
     scoreDisplay.textContent = "SAVING SIGNAL...";
 
-    const value = accepted.size;
+    // 1. Calculate percentage based on 12-word benchmark
+    const rawCount = accepted.size;
+    const scorePercentage = Math.min(Math.round((rawCount / 12) * 100), 100);
+
+    // 2. Prepare detailed behavioral data for the "ML Challenge"
+    const scoreDetails = {
+      raw_word_count: rawCount,
+      target_met: rawCount >= 12,
+      bonus_words: Math.max(0, rawCount - 12),
+      category: prompt.category,
+      duration_s: DURATION_S
+    };
 
     await fetch("/api/score", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({
         game: "verbal_fluency",
-        domain: prompt.domain || "Language",
-        value,
-        category: prompt.category,
-        letter: prompt.letter.toUpperCase(),
-        duration_s: DURATION_S,
-        total_utterances: totalUtterances,
-        rejected_utterances: rejectedUtterances,
-        duplicates,
-        accepted_items: acceptedRaw   // optional; remove if you don’t want to store raw words
+        domain: "Language",
+        value: scorePercentage, // Dashboard shows 0-100%
+        details: scoreDetails,   // AI uses raw data for analytics
+        accepted_items: acceptedRaw
       })
     });
 
@@ -219,11 +214,10 @@
   function startGame() {
     if (running) return;
 
+    // Resetting state before starting mic
     prompt = pickPrompt();
     categoryEl.textContent = prompt.category.toUpperCase();
-    letterEl.textContent = prompt.letter.toUpperCase();
 
-    // reset state
     accepted.clear();
     acceptedRaw.length = 0;
     acceptedListEl.innerHTML = "";
@@ -232,9 +226,8 @@
     rejectedUtterances = 0;
     duplicates = 0;
 
-    setSubtitle("Ready…", null);
+    setSubtitle("Initializing mic...", null);
 
-    // start timer
     running = true;
     startBtn.disabled = true;
     stopBtn.disabled = false;
@@ -243,17 +236,16 @@
     updateTimer();
     timerId = setInterval(updateTimer, 150);
 
-    // start speech recognition
     if (!SpeechRecognition) {
       setSubtitle("Speech not supported", false);
       setMicStatus(false);
-      // still allow submit
       return;
     }
 
+    // Creating fresh recognition instance to fix the bug
     recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = false; 
     recognition.lang = "en-US";
 
     recognition.onstart = () => {
@@ -264,29 +256,14 @@
     recognition.onresult = (event) => {
       if (!running) return;
 
-      // Build transcript from latest results
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        transcript += event.results[i][0].transcript + " ";
-      }
-      transcript = transcript.trim().toLowerCase();
+      const lastIndex = event.results.length - 1;
+      let transcript = event.results[lastIndex][0].transcript.trim().toLowerCase();
       if (!transcript) return;
 
       const candidate = extractCandidate(transcript);
       if (!candidate) return;
 
-      // To reduce spam from interim results, only handle when speech is "final"
-      // BUT browsers differ. We'll accept both, with a small safeguard:
-      // if the same candidate repeats rapidly, Set will treat it as duplicate anyway.
-
       totalUtterances += 1;
-
-      const okLetter = matchesLetter(candidate, prompt.letter);
-      if (!okLetter) {
-        rejectedUtterances += 1;
-        setSubtitle(candidate, false);
-        return;
-      }
 
       if (accepted.has(candidate)) {
         duplicates += 1;
@@ -294,18 +271,17 @@
         return;
       }
 
-      // accept it
       setSubtitle(candidate, true);
       addAccepted(candidate);
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (e) => {
+      console.error("Mic error:", e);
       setMicStatus(false);
-      setSubtitle("Mic error", false);
+      setSubtitle("Mic error: " + e.error, false);
     };
 
     recognition.onend = () => {
-      // keep it running while game is active
       if (running) {
         try { recognition.start(); } catch (e) {}
       } else {
@@ -313,9 +289,12 @@
       }
     };
 
-    try { recognition.start(); } catch (e) {
+    try { 
+      recognition.start(); 
+    } catch (e) {
+      console.error("Start failed:", e);
       setMicStatus(false);
-      setSubtitle("Could not start mic", false);
+      setSubtitle("Mic failed to start", false);
     }
   }
 

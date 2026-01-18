@@ -123,11 +123,12 @@
   function submitRecall() {
     if (phase !== "recall") return;
     const score = computeScore();
+    const scorePercentage = Math.round((score / 5) * 100);
     const elapsed = Math.round(performance.now() - recallStart);
 
     phase = "done";
     setStage("Done");
-    metaEl.textContent = `Score: ${score} / 5`;
+    metaEl.textContent = `Score: ${scorePercentage}%`;
     statusEl.textContent = "Saving to your dashboard...";
     submitBtn.disabled = true;
 
@@ -137,7 +138,7 @@
       body: JSON.stringify({
         game: "recall",
         domain: "Memory",
-        value: score,
+        value: scorePercentage,
         recall_ms: elapsed,
       }),
     })

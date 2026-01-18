@@ -313,7 +313,7 @@ def tests():
     # Only one Stroop test here
     games = [
         {"id": "stroop",
-            "name": "Color Interference (Stroop)", "domain": "Executive Function", "minutes": 2},
+            "name": "Stroop Color Test", "domain": "Executive Function", "minutes": 1},
         {"id": "recall", "name": "Five-Word Recall",
             "domain": "Memory", "minutes": 2},
         {"id": "orientation", "name": "Orientation Quickcheck",
@@ -426,6 +426,7 @@ def practice():
     return render_template("practice.html", games=games, user=current_user(), subtitle="Personalized training")
 
 
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -433,20 +434,28 @@ def dashboard():
     if not user:
         session.pop("user_id", None)
         return redirect(url_for("login"))
+    
+    # Fetch recent scores
     scores = get_scores(user["id"], limit=30)
     latest_by_domain = {}
+    
+    # Group the absolute latest score for each unique domain
     for s in scores:
         if s["domain"] not in latest_by_domain:
             latest_by_domain[s["domain"]] = s
+
+    # Formula: Average of all unique category scores
+    domain_values = [s["value"] for s in latest_by_domain.values()]
+    overall_score = sum(domain_values) / len(domain_values) if domain_values else 0
 
     return render_template(
         "dashboard.html",
         user=user,
         scores=scores,
         latest_by_domain=latest_by_domain,
+        overall_score=overall_score, # Pass the calculated average
         subtitle="Your results"
     )
-
 
 @app.post("/api/score")
 @login_required
@@ -500,11 +509,22 @@ def get_typing_text():
             "length": len(text)
         })
 
-
 @app.get("/api/recall-words")
 @login_required
 def get_recall_words():
     """Generate 5 random words for recall game."""
+    # Define fallback words once at the top to avoid repeating the list
+    import random
+    fallback_sets = [
+        ["bicycle", "candle", "planet", "quilt", "tower"],
+        ["apron", "glider", "jungle", "magnet", "sculpt"],
+        ["fossil", "melody", "pastry", "shield", "tunnel"],
+        ["banner", "cavern", "falcon", "locket", "vessel"],
+        ["bellow", "canyon", "hammer", "napkin", "valley"],
+        ["anchor", "desert", "marble", "safari", "temple"],
+        ["cactus", "dragon", "island", "museum", "rocket"]
+    ]
+
     try:
         # Use Ollama to generate words via local LLM
         response = ollama.generate(
@@ -514,39 +534,24 @@ def get_recall_words():
         )
 
         words_str = response['response'].strip()
+        # FIX: Changed [:4] to [:5] to actually get five words
         words = [w.strip().lower() for w in words_str.split(',')][:5]
 
-        # Fallback if we don't get exactly 5 words
+        # Fallback if the AI returned fewer than 5 words
         if len(words) < 5:
-            import random
-            fallback_words = [
-                ["elephant", "crystal", "mountain", "piano", "harbor"],
-                ["garden", "thunder", "silver", "whisper", "anchor"],
-                ["canvas", "forest", "marble", "silence", "beacon"],
-                ["island", "symphony", "pearl", "venture", "wisdom"],
-                ["bridge", "twilight", "emerald", "rhythm", "horizon"],
-            ]
-            words = random.choice(fallback_words)
+            words = random.choice(fallback_sets)
 
         return jsonify({
-            "words": words[:5]
+            "words": words[:5] # Extra safety slice to ensure exactly 5
         })
+
     except Exception as e:
         print(f"LLM Error: {e}")
-        # Fallback words if LLM is unavailable
-        import random
-        fallback_words = [
-            ["elephant", "crystal", "mountain", "piano", "harbor"],
-            ["garden", "thunder", "silver", "whisper", "anchor"],
-            ["canvas", "forest", "marble", "silence", "beacon"],
-            ["island", "symphony", "pearl", "venture", "wisdom"],
-            ["bridge", "twilight", "emerald", "rhythm", "horizon"],
-        ]
-        words = random.choice(fallback_words)
+        # Fallback words if LLM is unavailable entirely
+        selected_set = random.choice(fallback_sets)
         return jsonify({
-            "words": words
+            "words": selected_set[:5] # Ensure only 5 words from your expanded list are sent
         })
-
 
 @app.route("/schedule")
 @login_required
